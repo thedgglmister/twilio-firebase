@@ -1,0 +1,109 @@
+extends layout
+
+block head
+  title.
+    Warm Transfer
+  meta(name='viewport' content='width=device-width, initial-scale=1.0')
+  link(rel='stylesheet' href='/stylesheets/main.css')
+  link(rel='stylesheet' href='//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css')
+  link(rel='stylesheet' href='//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css')
+  script(src='//code.jquery.com/jquery-2.1.4.min.js')
+  script(src='//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js')
+  script(src='////media.twiliocdn.com/sdk/js/client/v1.5/twilio.min.js')
+  script(src='https://www.gstatic.com/firebasejs/5.5.8/firebase.js')
+
+  script.
+    var currentAgentId = !{JSON.stringify(currentAgentId)};
+    console.log(998899899);
+    console.log(currentAgentId);
+
+  script(src='javascripts/main.js')
+
+
+block content
+
+  div.row
+    div.col-md-6.col-md-offset-3
+      div.panel.panel-info.client-controls
+        div.panel-heading
+          h3.panel-title.
+            Support Agent Client
+        div.panel-body
+          p
+            strong.
+              Status
+            div.well.well-sm#call-status.
+              Waiting for user to connect as an agent...
+
+
+            div.row#connect-agent-row
+              div.col-md-6.text-center
+                button#connect-agent1-button.btn.btn-lg.btn-primary.
+                  * Connect as mkaufman
+              br
+              div.col-md-6.text-center
+                button#connect-agent2-button.btn.btn-lg.btn-info.
+                  Connect as lcampbell
+              br
+              div.col-md-6.text-center
+                button#connect-agent3-button.btn.btn-lg.btn-info.
+                  Connect as biremonger
+              br
+
+          div.row.hidden#connected-agent-row
+            div.col-md-4.text-center
+              button#answer-call-button.btn.btn-lg.btn-success(disabled="disabled").
+                Answer call
+            br
+            div.col-md-4.text-center
+              button#hangup-call-button.btn.btn-lg.btn-danger(disabled="disabled").
+                Hangup
+            br
+            div.col-md-4.text-center
+              button#hold-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Hold
+            br
+            div.col-md-4.text-center
+              button#off-hold-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Un-Hold
+            br
+            div.col-md-4.text-center
+              button#start-conference-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Move to conference
+            br
+            div.col-md-4.text-center
+              button#dial-agent1-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Dial in mkaufman
+            br
+            div.col-md-4.text-center
+              button#dial-agent2-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Dial in lcampbell
+            br
+            div.col-md-4.text-center
+              button#dial-agent3-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Dial in biremonger
+            br
+            div.col-md-4.text-center
+              button#transfer-agent1-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Transfer to mkaufman
+            br
+            div.col-md-4.text-center
+              button#transfer-agent2-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Transfer to lcampbell
+            br
+            div.col-md-4.text-center
+              button#transfer-agent3-button.btn.btn-lg.btn-info.hidden(disabled="disabled").
+                Transfer to biremonger
+            br
+            input(id='dial-input', placeholder='(888) 888-8888')
+            span.col-md-4.text-center
+              button#call-button.btn.btn-lg.btn-info.
+                Call
+            br
+            button#on-button.btn.btn-lg.btn-info.
+              On
+            button#off-button.btn.btn-lg.btn-info.
+              Off
+
+    a(id='logout-button', href='javascript:void(0)').
+      Log Out
