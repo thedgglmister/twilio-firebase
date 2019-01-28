@@ -27,14 +27,14 @@ var transferTwiml = function(options){
   return voiceResponse;
 };
 
-var callNumberTwiml = function(fromAgentId, toNumber){
+var callNumberTwiml = function(fromAgentId, toNumber, host){
   var voiceResponse = new VoiceResponse();
   const dial = voiceResponse.dial({
     callerId: configs.twilioNumber
   });
   dial.number({
     statusCallbackEvent: 'answered',
-    statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/outgoing/answered/' + fromAgentId + '/',
+    statusCallback: 'https://' + host + '/phone/outgoing/answered/' + fromAgentId + '/',
   }, toNumber);
   return voiceResponse;
 };

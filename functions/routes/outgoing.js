@@ -14,10 +14,11 @@ router.post('/', function(req, res) {
   console.log('toNumber: ', req.body.toNumber);
   var toNumber = req.body.toNumber;
   var fromAgentId = req.body.fromAgentId;
+  var host = req.get('host');
   var parentSid = req.body.CallSid;
 
   res.type('text/xml');
-  res.send(twimlGenerator.callNumberTwiml(fromAgentId, toNumber).toString());
+  res.send(twimlGenerator.callNumberTwiml(fromAgentId, toNumber, host).toString());
 });
 
 

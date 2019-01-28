@@ -43,6 +43,10 @@ router.post('/:agentId/', function(req, res) {
       twilioCaller.updateCall(currentParentSid, callbackUrl)
         .then(function() {
           res.sendStatus(200);
+        })
+        .catch(function(error) {
+          console.log(error);
+          res.sendStatus(500);
         });
     });
 });

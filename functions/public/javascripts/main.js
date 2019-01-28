@@ -36,39 +36,41 @@ $(function() {
   var $answerCallButton = $("#answer-call-button");
   var $hangupCallButton = $("#hangup-call-button");
   var $startConferenceButton = $("#start-conference-button");
-  var $dialAgent1Button = $("#dial-agent1-button");
-  var $dialAgent2Button = $("#dial-agent2-button");
-  var $dialAgent3Button = $("#dial-agent3-button");
-  var $transferAgent1Button = $("#transfer-agent1-button");
-  var $transferAgent2Button = $("#transfer-agent2-button");
-  var $transferAgent3Button = $("#transfer-agent3-button");
+  // var $dialAgent1Button = $("#dial-agent1-button");
+  // var $dialAgent2Button = $("#dial-agent2-button");
+  // var $dialAgent3Button = $("#dial-agent3-button");
+  // var $transferAgent1Button = $("#transfer-agent1-button");
+  // var $transferAgent2Button = $("#transfer-agent2-button");
+  // var $transferAgent3Button = $("#transfer-agent3-button");
   var $holdButton = $("#hold-button");
   var $offHoldButton = $("#off-hold-button");
   var $callButton = $("#call-button");
+  var $outboundCnt = $("#outbound-cnt");
   var $dialInput = $("#dial-input");
-  var $logoutButton = $("#logout-button");
+  var $logoutButton = $("#logout-btn");
 
-  var $onButton = $("#on-button");
-  var $offButton = $("#off-button");
+  var $transferCnt = $('#transfer-cnt');
+  var $dialInCnt = $('#dial-in-cnt');
+
+  var $statusSelector = $("#status-selector");
 
   var baseUrl = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone';
-  // var $outgoingTransferButton = $("#outgoing-transfer-button");
 
   $connectAgent1Button.on('click', { agentId: agentIds.agent1 }, agentClickHandler);
   $connectAgent2Button.on('click', { agentId: agentIds.agent2 }, agentClickHandler);
   $connectAgent3Button.on('click', { agentId: agentIds.agent3 }, agentClickHandler);
-  $dialAgent1Button.on('click', { agentId: agentIds.agent1 }, dialAgent);
-  $dialAgent2Button.on('click', { agentId: agentIds.agent2 }, dialAgent);
-  $dialAgent3Button.on('click', { agentId: agentIds.agent3 }, dialAgent);
-  $transferAgent1Button.on('click', { agentId: agentIds.agent1 }, transferAgent);
-  $transferAgent2Button.on('click', { agentId: agentIds.agent2 }, transferAgent);
-  $transferAgent3Button.on('click', { agentId: agentIds.agent3 }, transferAgent);
+  // $dialAgent1Button.on('click', { agentId: agentIds.agent1 }, dialAgent);
+  // $dialAgent2Button.on('click', { agentId: agentIds.agent2 }, dialAgent);
+  // $dialAgent3Button.on('click', { agentId: agentIds.agent3 }, dialAgent);
+  // $transferAgent1Button.on('click', { agentId: agentIds.agent1 }, transferAgent);
+  // $transferAgent2Button.on('click', { agentId: agentIds.agent2 }, transferAgent);
+  // $transferAgent3Button.on('click', { agentId: agentIds.agent3 }, transferAgent);
+
   $holdButton.on('click', {}, putCallOnHold);
   $offHoldButton.on('click', {}, takeCallOffHold);
   $startConferenceButton.on('click', {}, moveToConference);
   $hangupCallButton.on('click', hangUp);
   $callButton.on('click', call);
-  // $outgoingTransferButton.on('click', outgoingTransfer);
 
 
 
@@ -116,9 +118,10 @@ $(function() {
       console.log('token callback');
       console.log(data.token);
       currentAgentId = data.agentId;
-      console.log(66666);
-      console.log(currentAgentId);
-      connectClient(data.token)
+      connectClient(data.token);
+      agentPresencesRef.update({
+        [currentAgentId]: $statusSelector.val(),
+      });
     }, 'json');
   }
 
@@ -205,6 +208,8 @@ $(function() {
 
     $hangupCallButton.prop('disabled', false);
     $answerCallButton.prop('disabled', false);
+    $outboundCnt.addClass('hidden').prop('disabled', true);
+
 
     // Set a callback to be executed when the connection is accepted
     connection.accept(function() {
@@ -214,16 +219,19 @@ $(function() {
       $answerCallButton.prop('disabled', true);
       if (connection.parameters.From.endsWith('conference')) {
         updateCallStatus("In conference");
-        $dialAgent1Button.removeClass('hidden').prop('disabled', false);
-        $dialAgent2Button.removeClass('hidden').prop('disabled', false);
-        $dialAgent3Button.removeClass('hidden').prop('disabled', false);
+        $dialInCnt.removeClass('hidden');
+        // $dialAgent1Button.removeClass('hidden').prop('disabled', false);
+        // $dialAgent2Button.removeClass('hidden').prop('disabled', false);
+        // $dialAgent3Button.removeClass('hidden').prop('disabled', false);
       }
       else {
         updateCallStatus("In call: " + callerIdString); //what if  in a conference?
         $startConferenceButton.removeClass('hidden').prop('disabled', false);
-        $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-        $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-        $transferAgent3Button.removeClass('hidden').prop('disabled', false);
+        // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
+        // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
+        // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
+        $transferCnt.removeClass('hidden');
+
         $holdButton.removeClass('hidden').prop('disabled', false);
       }
       $answerCallButton.prop('disabled', true);
@@ -328,13 +336,16 @@ $(function() {
     $.post(baseUrl + '/conference/move/' + currentAgentId + '/' + currentChildSid, function(response) {
       updateCallStatus('In conference');
       $startConferenceButton.prop('disabled', true);
-      $transferAgent1Button.addClass('hidden').prop('disabled', true);
-      $transferAgent2Button.addClass('hidden').prop('disabled', true);
-      $transferAgent3Button.addClass('hidden').prop('disabled', true);
+      // $transferAgent1Button.addClass('hidden').prop('disabled', true);
+      // $transferAgent2Button.addClass('hidden').prop('disabled', true);
+      // $transferAgent3Button.addClass('hidden').prop('disabled', true);
+      $transferCnt.addClass('hidden');
+
       $holdButton.addClass('hidden').prop('disabled', true);
-      $dialAgent1Button.removeClass('hidden').prop('disabled', false);
-      $dialAgent2Button.removeClass('hidden').prop('disabled', false);
-      $dialAgent3Button.removeClass('hidden').prop('disabled', false);
+      // $dialAgent1Button.removeClass('hidden').prop('disabled', false);
+      // $dialAgent2Button.removeClass('hidden').prop('disabled', false);
+      // $dialAgent3Button.removeClass('hidden').prop('disabled', false);
+      $dialInCnt.removeClass('hidden');
     });
   }
 
@@ -346,20 +357,24 @@ $(function() {
   function callEndedHandler(onError) {
     console.log('in call ended handler');
 
-    $dialAgent1Button.addClass('hidden').prop('disabled', true);
-    $dialAgent2Button.addClass('hidden').prop('disabled', true);
-    $dialAgent3Button.addClass('hidden').prop('disabled', true);
+    // $dialAgent1Button.addClass('hidden').prop('disabled', true);
+    // $dialAgent2Button.addClass('hidden').prop('disabled', true);
+    // $dialAgent3Button.addClass('hidden').prop('disabled', true);
+    $dialInCnt.addClass('hidden');
     $startConferenceButton.addClass('hidden').prop('disabled', true);
-    $transferAgent1Button.addClass('hidden').prop('disabled', true);
-    $transferAgent2Button.addClass('hidden').prop('disabled', true);
-    $transferAgent3Button.addClass('hidden').prop('disabled', true);
+    // $transferAgent1Button.addClass('hidden').prop('disabled', true);
+    // $transferAgent2Button.addClass('hidden').prop('disabled', true);
+    // $transferAgent3Button.addClass('hidden').prop('disabled', true);
+    $transferCnt.addClass('hidden');
     $holdButton.addClass('hidden').prop('disabled', true);
     $offHoldButton.addClass('hidden').prop('disabled', true);
 
     $hangupCallButton.prop('disabled', true);
     $answerCallButton.prop('disabled', true);
 
-    $callButton.prop('disabled', false);
+    //$callButton.prop('disabled', false);
+    $outboundCnt.removeClass('hidden').prop('disabled', false);
+
 
     if (!onError) {
       updateCallStatus("Connected as: " + currentAgentId);
@@ -390,7 +405,7 @@ $(function() {
         if (numberData != null) {
 
           console.log(numberData.nationalFormat);
-          console.log(numberData.callerName.caller_name);
+          console.log(numberData.callerName);
 
           var nationalFormat = numberData.nationalFormat;
           var callerName = numberData.callerName ? numberData.callerName.caller_name : 'Anonymous';
@@ -416,7 +431,9 @@ $(function() {
 
   function preventUnload(event) {
     // Most browsers.
+    console.log('before prvent default');
     event.preventDefault();
+    console.log('after prvent default');
 
     // Chrome/Chromium based browsers still need this one.
     event.returnValue = "Please don't leave the page while on a call";
@@ -428,9 +445,12 @@ $(function() {
       updateCallStatus("On hold");
       $holdButton.addClass('hidden').prop('disabled', true);
       $offHoldButton.removeClass('hidden').prop('disabled', false);
-      $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-      $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-      $transferAgent3Button.removeClass('hidden').prop('disabled', false);
+
+      // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
+      // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
+      // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
+      $transferCnt.removeClass('hidden');
+      $outboundCnt.addClass('hidden').prop('disabled', true);
     });
 
     //what about transferring while they are on hold? --- Works. Test that I can get new calls after.
@@ -474,37 +494,33 @@ $(function() {
 
     window.addEventListener("beforeunload", preventUnload);
     $hangupCallButton.prop('disabled', false);
-    $callButton.prop('disabled', true);
+    $outboundCnt.addClass('hidden').prop('disabled', true);
 
-    $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-    $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-    $transferAgent3Button.removeClass('hidden').prop('disabled', false);
+    // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
+    // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
+    // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
+    $transferCnt.removeClass('hidden');
     $holdButton.removeClass('hidden').prop('disabled', false);
+    //$holdButton.removeClass('hidden').prop('disabled', false);
   }
 
   function logout() {
+    console.log('loggin out');
     $.post(baseUrl + '/login/logout/', function(response) {
       console.log(response);
+      agentPresencesRef.update({
+        [currentAgentId]: 'Offline',
+      });
+      window.location.assign('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/login/');
     });
   }
 
+  $logoutButton.on('click', logout);
 
 
-  // function outgoingTransfer() {
-  //   console.log(44545);
-  //   $.post('/outgoing/transfer/' + currentAgentId, function(response) {
-  //     console.log(response);
-  //   });
-  // }
 
 
-  $logoutButton.on('click', () => {
-    console.log(baseUrl);
-    console.log(baseUrl + '/login/logout/');
-    $.post(baseUrl + '/login/logout/', function(response) {
-      window.location.assign('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/login/');
-    });
-  });
+
 //
 // function deleteCookie() {
 //   $.get('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/login/logout/', function(response) {
@@ -513,31 +529,150 @@ $(function() {
 //   });
 // }
 
-
-
-
-  $offButton.prop('disabled', true);
-  $onButton.on('click', () => {
-    $onButton.prop('disabled', true);
-    $offButton.prop('disabled', false);
-    //$.post(baseUrl + '/presence/', {agentId: currentAgentId, presenceStatus: true});
-    agentPresencesRef.update({
-      [currentAgentId]: true,
-    });
+  agentPresencesRef.once('value', (snapshot) => {
+    let presences = snapshot.val();
+    addTransferAndDialInButtons(presences);
+    attachOnClickHandlers();
+    updatePresenceColors(presences);
   });
-  $offButton.on('click', () => {
-    $onButton.prop('disabled', false);
-    $offButton.prop('disabled', true);
-    //$.post(baseUrl + '/presence/', {agentId: currentAgentId, presenceStatus: false});
-    agentPresencesRef.update({
-      [currentAgentId]: false,
-    });
-  });
-
   agentPresencesRef.on('value', (snapshot) => {
     let presences = snapshot.val();
     console.log(presences);
+    updatePresenceColors(presences);
   });
+
+  // $logoutButton.on('load', function(e) {
+  //   console.log('skdhsajkhdjashdjkahkjdhajksdhj1234');
+  // });
+
+  $statusSelector.on('change', function(e) {
+    let value = e.target.value;
+    agentPresencesRef.update({
+      [currentAgentId]: value,
+    });
+  });
+
+  $(window).on('unload', function() {
+    agentPresencesRef.update({
+      [currentAgentId]: 'Offline',
+    });
+  })
+  // $offButton.prop('disabled', true);
+  // $onButton.on('click', () => {
+  //   $onButton.prop('disabled', true);
+  //   $offButton.prop('disabled', false);
+  //   //$.post(baseUrl + '/presence/', {agentId: currentAgentId, presenceStatus: true});
+  //   agentPresencesRef.update({
+  //     [currentAgentId]: true,
+  //   });
+  // });
+  // $offButton.on('click', () => {
+  //   $onButton.prop('disabled', false);
+  //   $offButton.prop('disabled', true);
+  //   //$.post(baseUrl + '/presence/', {agentId: currentAgentId, presenceStatus: false});
+  //   agentPresencesRef.update({
+  //     [currentAgentId]: false,
+  //   });
+  // });
+
+
+  function addTransferAndDialInButtons(presences) {
+
+    $transferFlexParent = $('#transfer-cnt .flex-parent');
+    $dialInFlexParent = $('#dial-in-cnt .flex-parent');
+
+    for (let agentId in presences) {
+      let $newTransferBtn = $('<div />');
+      $newTransferBtn.addClass('transfer-btn btn btn-lg btn-primary');
+      $newTransferBtn.data('agent-id', agentId);
+      $transferFlexParent.append($newTransferBtn);
+
+      $newTransferPresenceCircle = $('<div />');
+      $newTransferPresenceCircle.addClass('presence-circle');
+      $newTransferBtn.append($newTransferPresenceCircle);
+
+      $newTransferName = $('<div />');
+      $newTransferName.addClass('btn-name');
+      $newTransferName.text(agentId);
+      $newTransferBtn.append($newTransferName);
+
+
+
+      let $newDialInBtn = $('<div />');
+      $newDialInBtn.addClass('dial-in-btn btn btn-lg btn-primary');
+      $newDialInBtn.data('agent-id', agentId);
+      $dialInFlexParent.append($newDialInBtn);
+
+      $newDialPresenceCircle = $('<div />');
+      $newDialPresenceCircle.addClass('presence-circle');
+      $newDialInBtn.prepend($newDialPresenceCircle);
+
+      $newDialName = $('<div />');
+      $newDialName.addClass('btn-name');
+      $newDialName.text(agentId);
+      $newDialInBtn.append($newDialName);
+    }
+  }
+
+
+  function attachOnClickHandlers() {
+    let $transferButtons = $('.transfer-btn');
+    if ($transferButtons) {
+      $transferButtons.each((index, transferButton) => {
+        let $transferButton = $(transferButton);
+        $transferButton.on('click', { agentId: $transferButton.data('agent-id') }, transferAgent);
+      });
+    }
+    let $dialInButtons = $('.dial-in-btn');
+    if ($dialInButtons) {
+      $dialInButtons.each((index, dialInButton) => {
+        let $dialInButton = $(dialInButton);
+        $dialInButton.on('click', { agentId: $dialInButton.data('agent-id') }, dialAgent);
+      });
+    }
+  }
+
+  function updatePresenceColors(presences) {
+    let $transferButtons = $('.transfer-btn');
+    if ($transferButtons) {
+      $transferButtons.each((index, transferButton) => {
+        $transferButton = $(transferButton);
+        let agentId = $transferButton.data('agent-id');
+        let status = presences[agentId];
+        let color;
+        if (status == 'Available') {
+          color = '#99D299';
+        }
+        else if (status == 'Unavailable') {
+          color = '#ffe033';
+        }
+        else {
+          color = '#E79492';
+        }
+        $transferButton.find('.presence-circle').css('background-color', color);
+      });
+    }
+    let $dialInButtons = $('.dial-in-btn');
+    if ($dialInButtons) {
+      $dialInButtons.each((index, dialInButton) => {
+        $dialInButton = $(dialInButton);
+        let agentId = $dialInButton.data('agent-id');
+        let status = presences[agentId];
+        let color;
+        if (status == 'Available') {
+          color = '#99D299';
+        }
+        else if (status == 'Unavailable') {
+          color = '#FFEF95';
+        }
+        else {
+          color = '#E79492';
+        }
+        $dialInButton.find('.presence-circle').css('background-color', color);
+      });
+    }
+  }
+
 
 
 

@@ -11,7 +11,7 @@ $(function() {
   };
   firebase.initializeApp(config);
 
-  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+  //firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
 
   firebase.auth().getRedirectResult()
     .then(function(result) {
