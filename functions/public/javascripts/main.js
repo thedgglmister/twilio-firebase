@@ -87,7 +87,7 @@ $(function() {
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
 
-
+  fetchToken(currentAgentId);
 
 
 
@@ -101,9 +101,9 @@ $(function() {
 
 
   function agentClickHandler(e) {
-    var agentId = e.data.agentId;
-    disableConnectButtons(true);
-    fetchToken(agentId);
+  //   var agentId = e.data.agentId;
+  //   disableConnectButtons(true);
+  //   fetchToken(agentId);
   }
 
   function disableConnectButtons(disable) {
@@ -672,7 +672,6 @@ $(function() {
       });
     }
   }
-
 
 
 
