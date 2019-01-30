@@ -64,15 +64,18 @@ $(function() {
 
   function hideLogin() {
     $('#login-button').hide();
+    $('#welcome').hide();
     $('#redirecting').show();
   }
 
   function showLogin() {
     $('#login-button').show();
+    $('#welcome').fadeIn(3000);
     $('#redirecting').hide();
   }
 
   $("#login-button").on('click', googleSignIn);
+
 
   //
   // firebase.auth().getRedirectResult()

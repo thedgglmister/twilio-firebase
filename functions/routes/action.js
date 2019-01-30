@@ -8,6 +8,8 @@ var modelUpdater = require('../lib/model');
 var url = require('url');
 var configs = require('../lib/twilio-configs');
 var nodemailer = require('nodemailer');
+var agentIdGroups = require('../lib/agent-ids');
+
 
 
 var connectConferenceUrl = function(req, callSid) {
@@ -20,19 +22,36 @@ var connectConferenceUrl = function(req, callSid) {
   });
 };
 
-router.post('/callback/:agentId/:parentSid', function(req, res) {
-  var agentId = req.params.agentId;
+router.post('/callback/:agentIdGroupIndex/:parentSid', function(req, res) {
   var parentSid = req.params.parentSid;
+  var agentIdGroupIndex = parseInt(req.params.agentIdGroupIndex);
+
   console.log(4455566666);
   console.log(req.body.DialCallStatus);
   if (req.body.DialCallStatus == 'no-answer' || req.body.DialCallStatus == 'busy') {
-    res.type('text/xml');
-    res.send(twimlGenerator.recordTwiml(agentId).toString());
+    if (agentIdGroupIndex == agentIdGroups.length - 1) {
+      let voicemailRecipient = 'biremonger';
+      res.type('text/xml');
+      res.send(twimlGenerator.recordTwiml(voicemailRecipient).toString()); ////agentId
+    }
+    else {
+      let nextGroup = agentIdGroups[agentIdGroupIndex + 1]
+      modelUpdater.updateAgentStatus(nextGroup, parentSid, false)
+        .then(function() {
+          res.type('text/xml');
+          res.send(twimlGenerator.transferTwiml({
+            agentIds: nextGroup,
+            timeout: 15,
+            action: `/phone/action/callback/${agentIdGroupIndex + 1}/${parentSid}`,
+          }).toString());
+        });
+    }
   }
   else {
-    modelUpdater.findAgentConferenceStatus(agentId, parentSid)
-      .then(function(doc) {
-        if (doc && doc.movingToConference) {
+    let group = agentIdGroups[agentIdGroupIndex];
+    modelUpdater.findAgentConferenceStatus(group, parentSid)
+      .then(function(movingToConference) {
+        if (movingToConference) {
           var callbackUrl = connectConferenceUrl(req, parentSid);
           twilioCaller.updateCall(parentSid, callbackUrl)
             .then(function() {
@@ -45,6 +64,44 @@ router.post('/callback/:agentId/:parentSid', function(req, res) {
       });
   }
 });
+
+
+
+
+
+router.post('/transfer/:agentId/:parentSid', function(req, res) {
+  var agentId = req.params.agentId;
+  var parentSid = req.params.parentSid;
+
+  console.log(468888);
+  console.log(req.body.DialCallStatus);
+  if (req.body.DialCallStatus == 'no-answer' || req.body.DialCallStatus == 'busy') {
+    res.type('text/xml');
+    res.send(twimlGenerator.recordTwiml(agentId).toString());
+  }
+  else {
+    modelUpdater.findAgentConferenceStatus([agentId], parentSid)
+      .then(function(movingToConference) {
+        if (movingToConference) {
+          var callbackUrl = connectConferenceUrl(req, parentSid);
+          twilioCaller.updateCall(parentSid, callbackUrl)
+            .then(function() {
+              res.sendStatus(200);
+            });
+        }
+        else {
+          res.send(twimlGenerator.hangupTwiml().toString());
+        }
+      });
+  }
+});
+
+
+
+
+
+
+
 
 router.post('/transcription/:agentId', function(req, res) {
   var agentId = req.params.agentId;

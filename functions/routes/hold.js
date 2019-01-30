@@ -67,6 +67,9 @@ router.post('/unhold/:agentId/', function(req, res) {
       twilioCaller.updateCall(currentParentSid, callbackUrl)
         .then(function() {
           res.sendStatus(200);
+        })
+        .catch(function(e) {
+          res.send('The caller ended the call while on hold');
         });
     });
 });

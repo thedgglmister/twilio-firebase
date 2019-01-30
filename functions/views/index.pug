@@ -24,6 +24,9 @@ block head
 block content
   div.row
     div.col-md-6.col-md-offset-3
+      div#header
+        a(href='javascript:void(0)')#logout-btn.
+          Log Out
       div.panel.panel-info.client-controls.margin-vertical
         div.panel-body
           p
@@ -37,7 +40,7 @@ block content
                   Unavailable
 
 
-          div.row.hidden#connect-agent-row
+          div.row#connect-agent-row
             div.col-md-6.text-center
               button#connect-agent1-button.btn.btn-lg.btn-primary.
                 * Connect as mkaufman
@@ -49,6 +52,10 @@ block content
             div.col-md-6.text-center
               button#connect-agent3-button.btn.btn-lg.btn-info.
                 Connect as biremonger
+            br
+            div.col-md-6.text-center
+              button#connect-agent4-button.btn.btn-lg.btn-info.
+                Connect as jmarty
             br
 
           div.row.hidden#connected-agent-row
@@ -79,5 +86,7 @@ block content
               Transfer To:
             div.flex-parent
 
-      a(href='javascript:void(0)')#logout-btn.
-        Log Out
+      div
+        span.
+          Ring Speaker:
+        select#speaker-selector

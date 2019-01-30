@@ -1,5 +1,6 @@
-var agentIds = {
-  agent1: 'mkaufman',
-};
+var agentIdGroups = [
+  ['mkaufman'],
+  ['biremonger', 'lcampbell', 'jmarty'],
+];
 
-module.exports =  agentIds;
+module.exports =  agentIdGroups;

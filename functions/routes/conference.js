@@ -48,7 +48,7 @@ router.post('/move/:agentId/:childSid/', function(req, res) {
   modelUpdater.findAgentStatus(agentId)
     .then(function(doc) {
       currentParentSid = doc.currentParentSid;
-      return modelUpdater.updateAgentStatus(agentId, currentParentSid, true);
+      return modelUpdater.updateAgentStatus([agentId], currentParentSid, true);
     })
     .then(function() {
       var callbackUrl = connectConferenceUrl(req, currentParentSid);
@@ -72,7 +72,7 @@ router.post('/invite/:fromAgentId/:toAgentId/', function(req, res) {
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
       currentParentSid = doc.currentParentSid;
-      return modelUpdater.updateAgentStatus(toAgentId, currentParentSid, false);
+      return modelUpdater.updateAgentStatus([toAgentId], currentParentSid, false);
     })
     .then(function() {
       var callbackUrl = connectConferenceUrl(req, currentParentSid);

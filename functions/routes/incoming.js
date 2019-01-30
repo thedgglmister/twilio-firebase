@@ -2,24 +2,25 @@
 
 var express = require('express');
 var router = express.Router();
-var agentIds = require('../lib/agent-ids');
+var agentIdGroups = require('../lib/agent-ids');
 var twimlGenerator = require('../lib/twiml-generator');
 var modelUpdater = require('../lib/model');
 
 router.post('/', function(req, res) {
   console.log('incoming');
-  var agent1 = agentIds.agent1;
   var parentSid = req.body.CallSid;
   console.log('callSID: ', req.body.CallSid);
   console.log('toNumber: ', req.body.toNumber);
 
-  modelUpdater.updateAgentStatus(agent1, parentSid, false)
+  var group0 = agentIdGroups[0];
+
+  modelUpdater.updateAgentStatus(group0, parentSid, false)
     .then(function() {
       res.type('text/xml');
       res.send(twimlGenerator.transferTwiml({
-        agentIds: [agent1],
-        timeout: 15,
-        action: `/phone/action/callback/${agent1}/${parentSid}/`,
+        agentIds: group0,
+        timeout: 10,
+        action: `/phone/action/callback/${0}/${parentSid}`,
       }).toString());
     });
 });

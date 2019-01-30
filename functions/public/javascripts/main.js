@@ -21,6 +21,7 @@ $(function() {
     agent1: 'mkaufman',
     agent2: 'lcampbell',
     agent3: 'biremonger',
+    agent4: 'jmarty',
   };
 
   //var currentAgentId;
@@ -32,6 +33,7 @@ $(function() {
   var $connectAgent1Button = $("#connect-agent1-button");
   var $connectAgent2Button = $("#connect-agent2-button");
   var $connectAgent3Button = $("#connect-agent3-button");
+  var $connectAgent4Button = $("#connect-agent4-button");
 
   var $answerCallButton = $("#answer-call-button");
   var $hangupCallButton = $("#hangup-call-button");
@@ -53,12 +55,14 @@ $(function() {
   var $dialInCnt = $('#dial-in-cnt');
 
   var $statusSelector = $("#status-selector");
+  var $speakerSelector = $("#speaker-selector");
 
   var baseUrl = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone';
 
   $connectAgent1Button.on('click', { agentId: agentIds.agent1 }, agentClickHandler);
   $connectAgent2Button.on('click', { agentId: agentIds.agent2 }, agentClickHandler);
   $connectAgent3Button.on('click', { agentId: agentIds.agent3 }, agentClickHandler);
+  $connectAgent4Button.on('click', { agentId: agentIds.agent4 }, agentClickHandler);
   // $dialAgent1Button.on('click', { agentId: agentIds.agent1 }, dialAgent);
   // $dialAgent2Button.on('click', { agentId: agentIds.agent2 }, dialAgent);
   // $dialAgent3Button.on('click', { agentId: agentIds.agent3 }, dialAgent);
@@ -87,7 +91,9 @@ $(function() {
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
 
-  fetchToken(currentAgentId);
+///REAL need to comment out
+  //fetchToken(currentAgentId);
+////
 
 
 
@@ -101,15 +107,18 @@ $(function() {
 
 
   function agentClickHandler(e) {
-  //   var agentId = e.data.agentId;
-  //   disableConnectButtons(true);
-  //   fetchToken(agentId);
+  ///COMMENT OUT
+    var agentId = e.data.agentId;
+    disableConnectButtons(true);
+    fetchToken(agentId);
+  /////
   }
 
   function disableConnectButtons(disable) {
     $connectAgent1Button.prop('disabled', disable);
     $connectAgent2Button.prop('disabled', disable);
     $connectAgent3Button.prop('disabled', disable);
+    $connectAgent4Button.prop('disabled', disable);
   }
 
   function fetchToken(agentId) {
@@ -147,18 +156,56 @@ $(function() {
     updateCallStatus("Ready");
     agentConnectedHandler(currentAgentId);
     console.log('readyyy');
+
+    setupSpeakerOptions();
+
     // if (currentAgentId == 'mkaufman') {
+    //   console.log('in if');
     //   let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
     //   let ringingDevice = availableAudioDevices.find((device) => {
     //     return device.label.includes('Internal Speakers');
     //   });
     //   let ringingDeviceId = ringingDevice ? ringingDevice.deviceId : 'default';
+    //   console.log(ringingDeviceId);
     //   Twilio.Device.audio.ringtoneDevices.set(ringingDeviceId);
     // }
+    // else {
+    //   Twilio.Device.audio.ringtoneDevices.set('default');
+    // }
+    // console.log(Twilio.Device.audio.speakerDevices.get());
 
+    //Twilio.Device.audio.ringtoneDevices.set('default');
 
+    Twilio.Device.audio.on('deviceChange', (e) => {
+      console.log('$');
+      console.log(Twilio.Device.audio.speakerDevices.get());
+      console.log('#');
+      console.log($speakerSelector.val());
+      console.log('%');
 
-        Twilio.Device.audio.ringtoneDevices.set('default');
+      let oldDeviceId = $speakerSelector.val();
+      $speakerSelector.empty();
+      setupSpeakerOptions();
+
+      let oldIdExists = false;
+      let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
+      for (let audioDevice of availableAudioDevices) {
+        oldIdExists = oldIdExists || audioDevice.deviceId == oldDeviceId;
+      }
+      // $speakerSelector.children().each(() => {
+      //   console.log('abc');
+      //   console.log($(this));
+      //   console.log($(this).val());
+      //   oldIdExists = oldIdExists || $(this).val() == oldDeviceId;
+      // });
+      if (oldIdExists) {
+        $speakerSelector.val(oldDeviceId);
+      }
+      else {
+        $speakerSelector.val('default');
+      }
+    });
+    Twilio.Device.audio.outgoing(false);
   });
 
   function agentConnectedHandler(agentId) {
@@ -445,10 +492,6 @@ $(function() {
       updateCallStatus("On hold");
       $holdButton.addClass('hidden').prop('disabled', true);
       $offHoldButton.removeClass('hidden').prop('disabled', false);
-
-      // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-      // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-      // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
       $transferCnt.removeClass('hidden');
       $outboundCnt.addClass('hidden').prop('disabled', true);
     });
@@ -465,6 +508,10 @@ $(function() {
     onHold = false;
     callEndedHandler()
     $.post(baseUrl + '/hold/unhold/' + currentAgentId, function(response) {
+      console.log(response);
+      if (response != 'OK') {
+        alert(response);
+      }
       $offHoldButton.addClass('hidden').prop('disabled', true);
     });
     //move call out of queue
@@ -582,35 +629,27 @@ $(function() {
     $dialInFlexParent = $('#dial-in-cnt .flex-parent');
 
     for (let agentId in presences) {
-      let $newTransferBtn = $('<div />');
-      $newTransferBtn.addClass('transfer-btn btn btn-lg btn-primary');
-      $newTransferBtn.data('agent-id', agentId);
-      $transferFlexParent.append($newTransferBtn);
+      if (agentId != currentAgentId) {
+        let $newTransferBtn = $('<div />').addClass('transfer-btn btn btn-lg btn-primary').data('agent-id', agentId);
+        $transferFlexParent.append($newTransferBtn);
 
-      $newTransferPresenceCircle = $('<div />');
-      $newTransferPresenceCircle.addClass('presence-circle');
-      $newTransferBtn.append($newTransferPresenceCircle);
+        $newTransferPresenceCircle = $('<div />').addClass('presence-circle');
+        $newTransferBtn.append($newTransferPresenceCircle);
 
-      $newTransferName = $('<div />');
-      $newTransferName.addClass('btn-name');
-      $newTransferName.text(agentId);
-      $newTransferBtn.append($newTransferName);
+        $newTransferName = $('<div />').addClass('btn-name').text(agentId);
+        $newTransferBtn.append($newTransferName);
 
 
 
-      let $newDialInBtn = $('<div />');
-      $newDialInBtn.addClass('dial-in-btn btn btn-lg btn-primary');
-      $newDialInBtn.data('agent-id', agentId);
-      $dialInFlexParent.append($newDialInBtn);
+        let $newDialInBtn = $('<div />').addClass('dial-in-btn btn btn-lg btn-primary').data('agent-id', agentId);
+        $dialInFlexParent.append($newDialInBtn);
 
-      $newDialPresenceCircle = $('<div />');
-      $newDialPresenceCircle.addClass('presence-circle');
-      $newDialInBtn.prepend($newDialPresenceCircle);
+        $newDialPresenceCircle = $('<div />').addClass('presence-circle');
+        $newDialInBtn.prepend($newDialPresenceCircle);
 
-      $newDialName = $('<div />');
-      $newDialName.addClass('btn-name');
-      $newDialName.text(agentId);
-      $newDialInBtn.append($newDialName);
+        $newDialName = $('<div />').addClass('btn-name').text(agentId);
+        $newDialInBtn.append($newDialName);
+      }
     }
   }
 
@@ -670,6 +709,34 @@ $(function() {
         }
         $dialInButton.find('.presence-circle').css('background-color', color);
       });
+    }
+  }
+
+
+  $speakerSelector.on('change', (e) => {
+    let deviceId = e.target.value;
+    console.log(deviceId);
+    Twilio.Device.audio.ringtoneDevices.set(deviceId);
+    // console.log(Twilio.Device.audio.ringtoneDevices.get());
+  });
+
+  // $('#test').on('click', function() {
+  //   Twilio.Device.audio.ringtoneDevices.test();
+  // });
+
+  function setupSpeakerOptions() {
+    let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
+    console.log(availableAudioDevices);
+    let defaultDevice = availableAudioDevices.find((audioDevice) => {
+      return audioDevice.deviceId == 'default';
+    });
+
+    for (let audioDevice of availableAudioDevices) {
+      if (audioDevice.deviceId == 'default' || !defaultDevice.label.includes(audioDevice.label)) {
+        let label = audioDevice.label.substr(0, audioDevice.label.indexOf(' ('));
+        let audioOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
+        $speakerSelector.append(audioOption);
+      }
     }
   }
 

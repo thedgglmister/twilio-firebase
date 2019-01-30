@@ -2,16 +2,13 @@
   margin: 0px 5px;
 }
 .margin-vertical {
-  margin: 10px 0px;
+  margin: 5px 0px;
 }
 .outbound-input {
   border-radius: 4px;
 }
 #status-selector {
   float: right;
-}
-#logout-btn {
-  margin-left: 15px;
 }
 .main-btn-cnt {
   margin-bottom: 5px;
@@ -47,4 +44,10 @@
   flex-grow: 1;
   text-align: center;
   margin-left: 4px;
+}
+#speaker-selector {
+  margin-left: 5px;
+}
+#header {
+  padding-top: 10px;
 }

@@ -4,17 +4,25 @@ var { admin } = require('./admin');
 var agentsRef = admin.database().ref().child('agents');
 var agentPresencesRef = admin.database().ref().child('agentPresences');
 
-var updateAgentStatus = function(agentId, parentSid, movingToConference) {
-  var agentRef = agentsRef.child(agentId);
+var updateAgentStatus = function(agentIds, parentSid, movingToConference) {
 
-  return agentRef.update({
-    parentSid: parentSid,
-    movingToConference: movingToConference,
-  }).then(() => {
-    return agentRef.once('value').then((snapshot) => snapshot.val());
-  }).catch((error) => {
-    console.log(error);
-  });
+  return agentsRef.once('value')
+          .then((snapshot) => {
+            let doc = snapshot.val();
+            let updates = {};
+            for (let agentId of agentIds) {
+              updates[agentId] = doc[agentId] != null ? doc[agentId] : {};
+              updates[agentId].parentSid = parentSid;
+              updates[agentId].movingToConference = movingToConference;
+            }
+            return agentsRef.update(updates)
+            .catch((error) => {
+              console.log(error);
+            });
+          })
+          .catch((error) => {
+            console.log(error);
+          });
 }
 
 
@@ -41,17 +49,16 @@ var findAgentStatus = function(agentId) {
 }
 
 
-var findAgentConferenceStatus = function(agentId, parentSid) {
-  var agentRef = agentsRef.child(agentId);
+var findAgentConferenceStatus = function(agentIds, parentSid) { //make sure and array always getting passed in
 
-  return agentRef.once('value').then((snapshot) => {
+  return agentsRef.once('value').then((snapshot) => {
     let doc = snapshot.val();
-    if (doc.currentParentSid == parentSid) {
-      return doc;
+    for (let agent in doc) {
+      if (agentIds.includes(agent) && doc[agent].currentParentSid == parentSid && doc[agent].movingToConference) {
+        return true;
+      }
     }
-    else {
-      return undefined;
-    }
+    return false;
   });
 }
 

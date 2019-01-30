@@ -30,7 +30,7 @@ router.post('/:fromAgentId/:toAgentId', function(req, res) {
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
       currentParentSid = doc.currentParentSid;
-      modelUpdater.updateAgentStatus(toAgentId, currentParentSid, false)
+      modelUpdater.updateAgentStatus([toAgentId], currentParentSid, false)
         .then(function() {
           var callbackUrl = connectTransferUrl(req, currentParentSid, toAgentId);
           twilioCaller.updateCall(currentParentSid, callbackUrl)
@@ -53,8 +53,8 @@ router.post('/connect/:parentSid/:agentId', function(req, res) {
   res.type('text/xml');
   res.send(twimlGenerator.transferTwiml({
     agentIds: [agentId],
-    timeout: 15,
-    action: `/phone/action/callback/${agentId}/${parentSid}/`,
+    timeout: 10,
+    action: `/phone/action/transfer/${agentId}/${parentSid}`,
   }).toString());
 });
 

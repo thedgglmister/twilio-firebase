@@ -4,13 +4,18 @@ block head
   title.
     Warm Transfer
   meta(name='viewport' content='width=device-width, initial-scale=1.0')
+  link(rel='stylesheet' href='/phone/stylesheets/login.css')
   script(src='//code.jquery.com/jquery-2.1.4.min.js')
   script(src='https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/javascripts/client-login.js')
   script(src='https://www.gstatic.com/firebasejs/5.5.8/firebase.js')
 
 
 block content
-  a(id='login-button', href='javascrtip:void(0);', style='display:none;').
-    Log In
-  p(id='redirecting', style='display:none;').
-    Redirecting...
+  div.login-container
+    h1#welcome.
+      Welcome to your phone.
+    div.login-btn-container
+      button#login-button.
+        Log In
+      p#redirecting.
+        Redirecting...
