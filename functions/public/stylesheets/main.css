@@ -45,9 +45,13 @@
   text-align: center;
   margin-left: 4px;
 }
-#speaker-selector {
+#speaker-selector, #ringtone-selector {
   margin-left: 5px;
 }
 #header {
   padding-top: 10px;
+}
+
+.hidden {
+  display: none;
 }

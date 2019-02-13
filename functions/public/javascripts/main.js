@@ -55,7 +55,9 @@ $(function() {
   var $dialInCnt = $('#dial-in-cnt');
 
   var $statusSelector = $("#status-selector");
+  var $ringtoneSelector = $("#ringtone-selector");
   var $speakerSelector = $("#speaker-selector");
+
 
   var baseUrl = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone';
 
@@ -92,7 +94,7 @@ $(function() {
   let agentPresencesRef = firebase.database().ref('agentPresences');
 
 ///REAL need to comment out
-  //fetchToken(currentAgentId);
+  fetchToken(currentAgentId);
 ////
 
 
@@ -108,9 +110,9 @@ $(function() {
 
   function agentClickHandler(e) {
   ///COMMENT OUT
-    var agentId = e.data.agentId;
-    disableConnectButtons(true);
-    fetchToken(agentId);
+    // var agentId = e.data.agentId;
+    // disableConnectButtons(true);
+    // fetchToken(agentId);
   /////
   }
 
@@ -138,11 +140,7 @@ $(function() {
   function connectClient(token) {
     Twilio.Device.setup(token, {debug: true});
   }
-  ///////
-  //////
-  //fetchToken(currentAgentId);
-  //////
-  ///////
+
 
 
 
@@ -177,34 +175,43 @@ $(function() {
     //Twilio.Device.audio.ringtoneDevices.set('default');
 
     Twilio.Device.audio.on('deviceChange', (e) => {
-      console.log('$');
-      console.log(Twilio.Device.audio.speakerDevices.get());
-      console.log('#');
-      console.log($speakerSelector.val());
-      console.log('%');
 
-      let oldDeviceId = $speakerSelector.val();
+      console.log('on device change');
+
+      let oldRingtoneDeviceId = $ringtoneSelector.val();
+      let oldSpeakerDeviceId = $speakerSelector.val();
+
+      $ringtoneSelector.empty();
       $speakerSelector.empty();
       setupSpeakerOptions();
 
-      let oldIdExists = false;
+      let oldRingtoneIdExists = false;
+      let oldSpeakerIdExists = false;
       let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
       for (let audioDevice of availableAudioDevices) {
-        oldIdExists = oldIdExists || audioDevice.deviceId == oldDeviceId;
+        oldRingtoneIdExists = oldRingtoneIdExists || audioDevice.deviceId == oldRingtoneDeviceId;
+        oldSpeakerIdExists = oldSpeakerIdExists || audioDevice.deviceId == oldSpeakerDeviceId;
       }
-      // $speakerSelector.children().each(() => {
-      //   console.log('abc');
-      //   console.log($(this));
-      //   console.log($(this).val());
-      //   oldIdExists = oldIdExists || $(this).val() == oldDeviceId;
-      // });
-      if (oldIdExists) {
-        $speakerSelector.val(oldDeviceId);
+
+      if (oldRingtoneIdExists) {
+        console.log('abc1');
+        $ringtoneSelector.val(oldRingtoneDeviceId);
       }
       else {
+        console.log('abc2');
+        $ringtoneSelector.val('default');
+      }
+      if (oldSpeakerIdExists) {
+        console.log('abc3');
+        $speakerSelector.val(oldSpeakerDeviceId);
+      }
+      else {
+        console.log('abc4');
         $speakerSelector.val('default');
       }
     });
+
+
     Twilio.Device.audio.outgoing(false);
   });
 
@@ -713,10 +720,17 @@ $(function() {
   }
 
 
-  $speakerSelector.on('change', (e) => {
+  $ringtoneSelector.on('change', (e) => {
     let deviceId = e.target.value;
     console.log(deviceId);
     Twilio.Device.audio.ringtoneDevices.set(deviceId);
+    // console.log(Twilio.Device.audio.ringtoneDevices.get());
+  });
+
+  $speakerSelector.on('change', (e) => {
+    let deviceId = e.target.value;
+    console.log(deviceId);
+    Twilio.Device.audio.speakerDevices.set(deviceId);
     // console.log(Twilio.Device.audio.ringtoneDevices.get());
   });
 
@@ -725,17 +739,33 @@ $(function() {
   // });
 
   function setupSpeakerOptions() {
+    $ringtoneSelector.removeClass('hidden');
+    $speakerSelector.removeClass('hidden');
     let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
     console.log(availableAudioDevices);
-    let defaultDevice = availableAudioDevices.find((audioDevice) => {
-      return audioDevice.deviceId == 'default';
-    });
+    if (availableAudioDevices.length == 0) {
+      // let testOption = $('<option/>').text('test').attr('value', 'test');
+      // $ringtoneSelector.append(testOption);
+      $ringtoneSelector.AddClass('hidden');
+      $speakerSelector.AddClass('hidden');
+    }
+    else {
+      // let testOption2 = $('<option/>').text('test2').attr('value', 'test2');
+      // $ringtoneSelector.append(testOption2);
+      let defaultDevice = availableAudioDevices.find((audioDevice) => {
+        return audioDevice.deviceId == 'default';
+      });
 
-    for (let audioDevice of availableAudioDevices) {
-      if (audioDevice.deviceId == 'default' || !defaultDevice.label.includes(audioDevice.label)) {
-        let label = audioDevice.label.substr(0, audioDevice.label.indexOf(' ('));
-        let audioOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
-        $speakerSelector.append(audioOption);
+      for (let audioDevice of availableAudioDevices) {
+        if (audioDevice.deviceId == 'default' || !defaultDevice.label.includes(audioDevice.label)) {
+          let label = audioDevice.label.substr(0, audioDevice.label.indexOf(' ('));
+          let ringtoneOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
+          let speakerOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
+
+
+          $ringtoneSelector.append(ringtoneOption);
+          $speakerSelector.append(speakerOption);
+        }
       }
     }
   }

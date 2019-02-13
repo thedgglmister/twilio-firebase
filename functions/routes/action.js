@@ -32,7 +32,7 @@ router.post('/callback/:agentIdGroupIndex/:parentSid', function(req, res) {
     if (agentIdGroupIndex == agentIdGroups.length - 1) {
       let voicemailRecipient = 'biremonger';
       res.type('text/xml');
-      res.send(twimlGenerator.recordTwiml(voicemailRecipient).toString()); ////agentId
+      res.send(twimlGenerator.recordTwiml(voicemailRecipient).toString());
     }
     else {
       let nextGroup = agentIdGroups[agentIdGroupIndex + 1]
@@ -122,7 +122,7 @@ router.post('/transcription/:agentId', function(req, res) {
 
   var mailOptions = {
     from: configs.emailSender,
-    to: 'biremonger' + '@mkpartners.com', //agentId
+    to: agentId + '@mkpartners.com',
     subject: 'New voice mail from ' + from,
     text: transcriptionText + '\n\n' + recordingUrl,//use html instead of text?
   };
