@@ -6,15 +6,24 @@ const { admin } = require('../lib/admin');
 const { authenticateBeforeLogin } = require('../lib/authenticate');
 
 
+var getRedirectUrl = function(req) {
+  var pathname = '/phone/login/';
+  return url.format({
+    protocol: 'https',
+    host: req.host,
+    pathname: pathname,
+  });
+};
 
 router.get('/', authenticateBeforeLogin, function(req, res) {
-  console.log('at /login');
+  console.log('in login');
   res.render('client-login');
 });
 
 router.post('/logout', function(req, res) {
+  let redirectUrl = getRedirectUrl(req);
+
   res.clearCookie('session');
-  let redirectUrl = 'https://' + req.get('host') + '/phone/login/';
   res.redirect(redirectUrl);
 });
 

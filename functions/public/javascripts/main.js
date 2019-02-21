@@ -93,8 +93,8 @@ $(function() {
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
 
-///REAL need to comment out
-  fetchToken(currentAgentId);
+///REAL need to uncomment out
+  //fetchToken(currentAgentId);
 ////
 
 
@@ -110,9 +110,9 @@ $(function() {
 
   function agentClickHandler(e) {
   ///COMMENT OUT
-    // var agentId = e.data.agentId;
-    // disableConnectButtons(true);
-    // fetchToken(agentId);
+    var agentId = e.data.agentId;
+    disableConnectButtons(true);
+    fetchToken(agentId);
   /////
   }
 
@@ -125,10 +125,16 @@ $(function() {
 
   function fetchToken(agentId) {
     console.log('fetching token');
-    $.post(baseUrl + '/token/'+ agentId, {}, function(data) {
+    let paths = ['token'];
+    let params = {
+      agentId: agentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+    currentAgentId
+    $.post(url, function(data) {
       console.log('token callback');
       console.log(data.token);
-      currentAgentId = data.agentId;
+      currentAgentId = agentId; 
       connectClient(data.token);
       agentPresencesRef.update({
         [currentAgentId]: $statusSelector.val(),
@@ -252,9 +258,9 @@ $(function() {
     window.addEventListener("beforeunload", preventUnload);
     currentChildSid = connection.parameters.CallSid;
 
-    if (connection.parameters.From.endsWith('@conference')) {
-      alert(123);
-    }
+    // if (connection.parameters.From.endsWith('@conference')) {
+    //   alert(123);
+    // }
     updateCallerIdString(connection.parameters.From);
     // console.log(callerIdString + '#');
     // updateCallStatus("Incoming call: " + callerIdString);
@@ -268,10 +274,10 @@ $(function() {
     // Set a callback to be executed when the connection is accepted
     connection.accept(function() {
       console.log("accccepted");
-      $.post(baseUrl + '/accept/' + currentAgentId); //should set parentId to currentParentId in mongo
+      //$.post(baseUrl + '/accept/' + currentAgentId); //should set parentId to currentParentId in mongo
 
       $answerCallButton.prop('disabled', true);
-      if (connection.parameters.From.endsWith('conference')) {
+      if (connection.parameters.From.endsWith('conference')) {               /////this needs to be based on database.
         updateCallStatus("In conference");
         $dialInCnt.removeClass('hidden');
         // $dialAgent1Button.removeClass('hidden').prop('disabled', false);
@@ -375,19 +381,37 @@ $(function() {
 
 
   function dialAgent(e) {
-    $.post(baseUrl + '/conference/invite/' + currentAgentId + '/' + e.data.agentId);
+    let paths = ['conference', 'invite'];
+    let params = {
+      fromAgentId: currentAgentId,
+      toAgentId: e.data.agentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+    $.post(url);
   }
 
 
   function transferAgent(e) {
-    $.post(baseUrl + '/transfer/' + currentAgentId + '/' + e.data.agentId, function(response) {
+    let paths = ['transfer'];
+    let params = {
+      fromAgentId: currentAgentId,
+      toAgentId: e.data.agentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+    $.post(url, function(response) {
       callEndedHandler();
       onHold = false;
     });
   }
 
   function moveToConference(e) {
-    $.post(baseUrl + '/conference/move/' + currentAgentId + '/' + currentChildSid, function(response) {
+    let paths = ['conference'];
+    let params = {
+      agentId: currentAgentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+
+    $.post(url, function(response) {
       updateCallStatus('In conference');
       $startConferenceButton.prop('disabled', true);
       // $transferAgent1Button.addClass('hidden').prop('disabled', true);
@@ -446,13 +470,19 @@ $(function() {
     console.log(fromNumber);
     if (fromNumber.startsWith('client:')) {
       callerIdString = fromNumber.slice(7);
-      if (fromNumber.endsWith('conference')) {
-        callerIdString = callerIdString.slice(0, callerIdString.length - 10);
-      }
+      // if (fromNumber.endsWith('conference')) {
+      //   callerIdString = callerIdString.slice(0, callerIdString.length - 10);
+      // }
       updateCallStatus("Incoming call: " + callerIdString);
     }
     else {
-      $.post(baseUrl + '/callerid/' + fromNumber, function(numberData) {
+      let paths = ['callerid'];
+      let params = {
+        number: fromNumber,
+      };
+      let url = createUrl(baseUrl, paths, params);
+
+      $.post(url, function(numberData) {
         console.log(JSON.stringify(numberData));
         console.log(numberData);
         console.log(numberData !== null);
@@ -494,7 +524,13 @@ $(function() {
   }
 
   function putCallOnHold() {
-    $.post(baseUrl + '/hold/' + currentAgentId, function(response) {
+    let paths = ['hold'];
+    let params = {
+      agentId: currentAgentId,
+    }
+    let url = createUrl(baseUrl, paths, params);
+
+    $.post(url, function(response) {
       onHold = true;
       updateCallStatus("On hold");
       $holdButton.addClass('hidden').prop('disabled', true);
@@ -513,8 +549,13 @@ $(function() {
 
   function takeCallOffHold() {
     onHold = false;
-    callEndedHandler()
-    $.post(baseUrl + '/hold/unhold/' + currentAgentId, function(response) {
+    let paths = ['hold', 'unhold'];
+    let params = {
+      agentId: currentAgentId,
+    }
+    let url = createUrl(baseUrl, paths, params);
+    callEndedHandler();
+    $.post(url, function(response) {
       console.log(response);
       if (response != 'OK') {
         alert(response);
@@ -768,6 +809,19 @@ $(function() {
         }
       }
     }
+  }
+
+
+  function createUrl(base, paths, params) {
+    let url = base;
+    for (let path of paths) {
+      url += `/${path}`;
+    }
+    url += '?';
+    for (let key in params) {
+      url += `${key}=${params[key]}&`;
+    }
+    return url;
   }
 
 

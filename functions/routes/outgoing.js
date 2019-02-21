@@ -9,31 +9,36 @@ var configs = require('../lib/twilio-configs');
 var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
 
 router.post('/', function(req, res) {
-  console.log('outgoing call');
+  console.log('in outgoing');
   console.log('callSID: ', req.body.CallSid);
   console.log('toNumber: ', req.body.toNumber);
+  console.log(req.body);
+
   var toNumber = req.body.toNumber;
   var fromAgentId = req.body.fromAgentId;
-  var host = req.get('host');
   var parentSid = req.body.CallSid;
 
+  modelUpdater.updateCurrentCallSids(fromAgentId, null, parentSid);
+
   res.type('text/xml');
-  res.send(twimlGenerator.callNumberTwiml(fromAgentId, toNumber, host).toString());
+  res.send(twimlGenerator.callNumberTwiml(fromAgentId, toNumber));
 });
 
 
-router.post('/answered/:fromAgentId', function(req, res) {
-  console.log("CALLBACK WORKED");
-  console.log('callSID: ', req.body.CallSid);
-  console.log('parentCallSID: ', req.body.ParentCallSid);
-  let fromAgentId = req.params.fromAgentId;
-  let childSid = req.body.CallSid;
+// router.post('/answered/:fromAgentId', function(req, res) {
+//   console.log("CALLBACK WORKED");
+//   console.log('callSID: ', req.body.CallSid);
+//   console.log('parentCallSID: ', req.body.ParentCallSid);
+//   let fromAgentId = req.params.fromAgentId;
+//   let childSid = req.body.CallSid;
 
-  modelUpdater.updateCurrentParentSid(fromAgentId, childSid, false)
-    .then(function() {
-      res.sendStatus(200);
-    });
-});
+//   modelUpdater.updateCurrentParentSid(fromAgentId, childSid, false)
+//     .then(function() {
+//       res.sendStatus(200);
+//     });
+//});
+
+
 
 
 

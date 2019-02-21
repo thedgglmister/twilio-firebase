@@ -3,71 +3,96 @@
 var VoiceResponse = require('twilio').twiml.VoiceResponse;
 var configs = require('./twilio-configs');
 
-var connectConferenceTwiml = function(options){
+var conferenceTwiml = function(options) {
   var voiceResponse = new VoiceResponse();
-  voiceResponse.dial().conference({
-      'startConferenceOnEnter': options.startConferenceOnEnter,
-      'endConferenceOnExit': options.endConferenceOnExit,
-      'waitUrl': options.waitUrl
-    }, options.callSid);
+  voiceResponse.dial({action: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference'}).conference({
+      startConferenceOnEnter: options.startConferenceOnEnter,
+      endConferenceOnExit: options.endConferenceOnExit,
+      waitUrl: options.waitUrl,
+      //statusCallbackEvent:"leave",
+      //statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/statusCallback',
+      //statusCallbackMethod:"POST",
+    }, options.conferenceName);
 
-  return voiceResponse;
+  return voiceResponse.toString();
 };
 
-var transferTwiml = function(options){
+var transferTwiml = function(options) {
+  console.log('in transfer twiml');
+  console.log(options.agentIds);
   var voiceResponse = new VoiceResponse();
   var dial = voiceResponse.dial({
     action: options.action,
     timeout: options.timeout,
   });
   for (let agentId of options.agentIds) {
-    dial.client(agentId);
+
+    dial.client({
+      statusCallbackEvent:"answered completed",
+      statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/transfer/statusCallback',
+      statusCallbackMethod:"POST",
+    }, agentId);
   }
 
-  return voiceResponse;
+  return voiceResponse.toString();
 };
 
-var callNumberTwiml = function(fromAgentId, toNumber, host){
+var callNumberTwiml = function(fromAgentId, toNumber){
   var voiceResponse = new VoiceResponse();
   const dial = voiceResponse.dial({
     callerId: configs.twilioNumber
   });
   dial.number({
     statusCallbackEvent: 'answered',
-    statusCallback: 'https://' + host + '/phone/outgoing/answered/' + fromAgentId + '/',
+    statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/outgoing/statusCallback/${fromAgentId}`,
   }, toNumber);
-  return voiceResponse;
+  return voiceResponse.toString();
 };
 
-var recordTwiml = function(agentId){
+var recordTwiml = function(callbackUrl) {
   var voiceResponse = new VoiceResponse();
   voiceResponse.say('Please leave a message at the beep.');
   voiceResponse.record({
     timeout: 10,
     maxLength: 120,
-    transcribeCallback: '/phone/action/transcription/' + agentId + '/',
+    transcribeCallback: callbackUrl,
   });
 
-  return voiceResponse;
+  return voiceResponse.toString();
 };
 
 var hangupTwiml = function(){
   var voiceResponse = new VoiceResponse();
   voiceResponse.hangup();
 
-  return voiceResponse;
+  return voiceResponse.toString();
 };
 
-var enqueueTwiml = function(){
+var enqueueTwiml = function(options){
   var voiceResponse = new VoiceResponse();
-  voiceResponse.enqueue('holdingQueue'); //needs to be unique to agentId? or no
+  voiceResponse.enqueue(
+    {
+      action: options.action
+    },
+    'holdingQueue'); //needs to be unique to agentId? or no. not if they are just in queue and are going to get dialed out by their parentsid.
 
-  return voiceResponse;
+  console.log('enqueue twiml');
+  console.log(voiceResponse.toString());
+
+  return voiceResponse.toString();
 };
 
-module.exports.connectConferenceTwiml = connectConferenceTwiml;
+// var leaveTwiml = function(agentId, options){
+//   var voiceResponse = new VoiceResponse();
+//   voiceResponse.leave(); 
+
+//   return voiceResponse;
+// };
+
+module.exports.conferenceTwiml = conferenceTwiml;
 module.exports.transferTwiml = transferTwiml;
 module.exports.recordTwiml = recordTwiml;
 module.exports.hangupTwiml = hangupTwiml;
+//module.exports.leaveTwiml = leaveTwiml;
 module.exports.enqueueTwiml = enqueueTwiml;
 module.exports.callNumberTwiml = callNumberTwiml;

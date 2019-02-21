@@ -12,54 +12,108 @@ var agentIdGroups = require('../lib/agent-ids');
 
 
 
-var connectConferenceUrl = function(req, callSid) {
-  var pathName = `/phone/conference/connect/${callSid}/`;
+// var conferenceCallbackUrl = function(req, callSid) {
+//   var pathName = `/phone/conference/connect/${callSid}/`;
+
+//   return url.format({
+//     protocol: 'https',
+//     host: req.get('host'),
+//     pathname: pathName
+//   });
+// };
+
+
+var conferenceCallbackUrl = function(req, parentSid) {
+  let pathname = `/phone/conference/callback/`;
 
   return url.format({
     protocol: 'https',
-    host: req.get('host'),
-    pathname: pathName
+    host: req.host,
+    pathname: pathname,
+    query: {
+      conferenceName: parentSid,
+      
+    }
   });
 };
 
-router.post('/callback/:agentIdGroupIndex/:parentSid', function(req, res) {
-  var parentSid = req.params.parentSid;
-  var agentIdGroupIndex = parseInt(req.params.agentIdGroupIndex);
+var huntActionUrl = function(req) {
+  var pathname = '/phone/action/hunt';
+  return url.format({
+    protocol: 'https',
+    host: req.host,
+    pathname: pathname,
+    query: {
+      agentIdGroupIndex: parseInt(req.query.agentIdGroupIndex) + 1,
+    },
+  });
+}
 
-  console.log(4455566666);
-  console.log(req.body.DialCallStatus);
-  if (req.body.DialCallStatus == 'no-answer' || req.body.DialCallStatus == 'busy') {
+var transcribeCallbackUrl = function(req, recipientAgentId) {
+  var pathname = '/phone/action/transcribe';
+  return url.format({
+    protocol: 'https',
+    host: req.host,
+    pathname: pathname,
+    query: {
+      recipientAgentId: recipientAgentId,
+    },
+  });
+}
+
+
+
+
+
+
+router.post('/hunt', function(req, res) {
+  console.log('in hunt action');
+  //console.log(req.body);
+  var agentIdGroupIndex = parseInt(req.query.agentIdGroupIndex);
+  var dialCallStatus = req.body.DialCallStatus;
+  var parentSid = req.body.CallSid;
+
+
+
+  if (dialCallStatus == 'no-answer' || dialCallStatus == 'busy') {
     if (agentIdGroupIndex == agentIdGroups.length - 1) {
-      let voicemailRecipient = 'biremonger';
+      let recipientAgentId = 'biremonger'; //////////////////////////////////////////////handle
+      let callbackUrl = transcribeCallbackUrl(req, recipientAgentId);
+      let recordTwiml = twimlGenerator.recordTwiml(callbackUrl);
       res.type('text/xml');
-      res.send(twimlGenerator.recordTwiml(voicemailRecipient).toString());
+      res.send(recordTwiml);
     }
     else {
       let nextGroup = agentIdGroups[agentIdGroupIndex + 1]
       modelUpdater.updateAgentStatus(nextGroup, parentSid, false)
         .then(function() {
-          res.type('text/xml');
-          res.send(twimlGenerator.transferTwiml({
+          let actionUrl = huntActionUrl(req);
+          let transferTwiml = twimlGenerator.transferTwiml({
             agentIds: nextGroup,
-            timeout: 15,
-            action: `/phone/action/callback/${agentIdGroupIndex + 1}/${parentSid}`,
-          }).toString());
+            timeout: 10,
+            action: actionUrl,
+          });
+          res.type('text/xml');
+          res.send(transferTwiml);
         });
     }
   }
   else {
     let group = agentIdGroups[agentIdGroupIndex];
-    modelUpdater.findAgentConferenceStatus(group, parentSid)
-      .then(function(movingToConference) {
-        if (movingToConference) {
-          var callbackUrl = connectConferenceUrl(req, parentSid);
+    modelUpdater.findConferenceStatusFromGroup(group, parentSid)    
+      .then(function(moveToConference) {
+        console.log('moveToConference: ', moveToConference);
+        if (moveToConference) {
+          var callbackUrl = conferenceCallbackUrl(req, parentSid);
           twilioCaller.updateCall(parentSid, callbackUrl)
-            .then(function() {
+            .then(() => {
               res.sendStatus(200);
             });
         }
         else {
-          res.send(twimlGenerator.hangupTwiml().toString());
+          let hangupTwiml = twimlGenerator.hangupTwiml();
+          res.type('text/xml');
+          res.send(hangupTwiml);
         }
       });
   }
@@ -69,28 +123,38 @@ router.post('/callback/:agentIdGroupIndex/:parentSid', function(req, res) {
 
 
 
-router.post('/transfer/:agentId/:parentSid', function(req, res) {
-  var agentId = req.params.agentId;
-  var parentSid = req.params.parentSid;
+router.post('/transfer', function(req, res) {
+  console.log('in transfer action');
+  console.log('agentId: ', req.query.agentId);
+  console.log('parentSid: ', req.body.CallSid);
+  console.log('dialCallStatus: ', req.body.DialCallStatus);
 
-  console.log(468888);
-  console.log(req.body.DialCallStatus);
-  if (req.body.DialCallStatus == 'no-answer' || req.body.DialCallStatus == 'busy') {
-    res.type('text/xml');
-    res.send(twimlGenerator.recordTwiml(agentId).toString());
+  var agentId = req.query.agentId;
+  var parentSid = req.body.CallSid;
+  var dialCallStatus = req.body.DialCallStatus
+
+  if (dialCallStatus == 'no-answer' || dialCallStatus == 'busy') {
+    let recipientAgentId = agentId;
+    let callbackUrl = transcribeCallbackUrl(req, recipientAgentId);
+    let recordTwiml = twimlGenerator.recordTwiml(callbackUrl);
+
+    res.send(recordTwiml);
   }
   else {
-    modelUpdater.findAgentConferenceStatus([agentId], parentSid)
-      .then(function(movingToConference) {
-        if (movingToConference) {
-          var callbackUrl = connectConferenceUrl(req, parentSid);
+    modelUpdater.findConferenceStatusFromGroup([agentId], parentSid)
+      .then(function(moveToConference) {
+        console.log('moveToConference: ', moveToConference);
+        if (moveToConference) {
+          var callbackUrl = conferenceCallbackUrl(req, parentSid);
           twilioCaller.updateCall(parentSid, callbackUrl)
             .then(function() {
               res.sendStatus(200);
             });
         }
         else {
-          res.send(twimlGenerator.hangupTwiml().toString());
+          let hangupTwiml = twimlGenerator.hangupTwiml();
+          res.type('text/xml');
+          res.send(hangupTwiml);
         }
       });
   }
@@ -101,10 +165,127 @@ router.post('/transfer/:agentId/:parentSid', function(req, res) {
 
 
 
+router.post('/enqueue', function(req, res) {
+  console.log('in enqueue action');
+  console.log('agentId: ', req.query.agentId);
+
+  let agentId = req.query.agentId;
+
+  modelUpdater.updateHoldSid(agentId, null)
+    .then(function() {
+      res.sendStatus(200);
+    })
+    .catch(function(error) {
+      console.log(error);
+      res.sendStatus(500);
+    });
+});
 
 
-router.post('/transcription/:agentId', function(req, res) {
-  var agentId = req.params.agentId;
+
+
+
+
+
+
+
+
+
+
+router.post('/transfer/statusCallback', function(req, res) {
+  console.log('in transfer statusCallback');
+  console.log('call to: ', req.body.To);
+  console.log('call status: ', req.body.CallStatus);
+  //console.log(req.body);
+
+  let callStatus = req.body.CallStatus;
+  let callTo = req.body.To.substring(req.body.To.indexOf(':') + 1);
+  let parentSid = req.body.ParentCallSid;
+  let childSid = req.body.CallSid;
+
+  if (callStatus == 'in-progress') {
+    modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      })
+  }
+  else {
+    modelUpdater.updateCurrentCallSids(callTo, null, null)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  }
+});
+
+
+
+router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
+  console.log("in outgoing statusCallback");
+  console.log(req.body);
+  let fromAgentId = req.params.fromAgentId;
+  let childSid = req.body.CallSid;
+
+  modelUpdater.updateCurrentCallSids(fromAgentId, childSid)
+    .then(function() {
+      res.sendStatus(200);
+    });
+});
+
+
+
+
+
+router.post('/conference', function(req, res) {
+  console.log('in conference action');
+  console.log('callTo: ', req.body.To);
+  // console.log('call status: ', req.body.CallStatus);
+  //console.log(req.body);
+
+  // let callStatus = req.body.CallStatus;
+  let callTo = req.body.To.substring(req.body.To.indexOf(':') + 1);
+  // let parentSid = req.body.ParentCallSid;
+  // let childSid = req.body.CallSid;
+
+  // if (callStatus == 'in-progress') {
+  //   modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid)
+  //     .then(() => {
+  //       res.sendStatus(200);
+  //     })
+  //     .catch((e) => {
+  //       console.log(e);
+  //       res.sendStatus(500);
+  //     })
+  // }
+  //else {
+    modelUpdater.updateAgentConference(callTo, null)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  //}
+});
+
+
+
+
+
+
+
+
+
+router.post('/transcribe', function(req, res) {
+  var recipientAgentId = req.query.recipientAgentId;
   var transcriptionText = req.body.TranscriptionText;
   var transcriptionStatus = req.body.TranscriptionStatus;
   var recordingUrl = req.body.RecordingUrl;
@@ -122,7 +303,7 @@ router.post('/transcription/:agentId', function(req, res) {
 
   var mailOptions = {
     from: configs.emailSender,
-    to: agentId + '@mkpartners.com',
+    to: recipientAgentId + '@mkpartners.com',
     subject: 'New voice mail from ' + from,
     text: transcriptionText + '\n\n' + recordingUrl,//use html instead of text?
   };
@@ -138,5 +319,18 @@ router.post('/transcription/:agentId', function(req, res) {
   });
 
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports = router;

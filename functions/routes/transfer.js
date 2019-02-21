@@ -8,54 +8,69 @@ var modelUpdater = require('../lib/model');
 var url = require('url');
 
 
-var connectTransferUrl = function(req, parentSid, agentId) {
-  var pathName = `/phone/transfer/connect/${parentSid}/${agentId}/`;
+var transferCallbackUrl = function(req) {
+  var pathname = '/phone/transfer/callback';
   return url.format({
     protocol: 'https',
-    host: req.get('host'),
-    pathname: pathName
+    host: req.host,
+    pathname: pathname,
+    query: {
+      toAgentId: req.query.toAgentId,
+    },
+  });
+};
+
+var transferActionUrl = function(req) {
+  var pathname = '/phone/action/transfer';
+  return url.format({
+    protocol: 'https',
+    host: req.host,
+    pathname: pathname,
+    query: {
+      agentId: req.query.toAgentId,
+    },
   });
 };
 
 
-router.post('/:fromAgentId/:toAgentId', function(req, res) {
-  // if (!req.session.agentId) {
-  //   res.sendStatus(403);
-  // }
+router.post('/', function(req, res) {
+  console.log('in transfer');
+  console.log('fromAgent: ', req.query.fromAgentId);
+  console.log('toAgent: ', req.query.toAgentId);
 
-  var toAgentId = req.params.toAgentId;
-  var fromAgentId = req.params.fromAgentId;
-  var currentParentSid;
+  let fromAgentId = req.query.fromAgentId;
 
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
-      currentParentSid = doc.currentParentSid;
-      modelUpdater.updateAgentStatus([toAgentId], currentParentSid, false)
+      let callSid = doc.currentParentSid ? doc.currentParentSid : doc.holdSid;
+      var callbackUrl = transferCallbackUrl(req);
+      twilioCaller.updateCall(callSid, callbackUrl)
         .then(function() {
-          var callbackUrl = connectTransferUrl(req, currentParentSid, toAgentId);
-          twilioCaller.updateCall(currentParentSid, callbackUrl)
-            .then(function() {
-              res.sendStatus(200);
-            })
-            .catch(function(error) {
-              console.log(error);
-              res.sendStatus(500);
-            });
+          res.sendStatus(200);
+        })
+        .catch(function(error) {
+          console.log(error);
+          res.sendStatus(500);
         });
     });
 });
 
 
-router.post('/connect/:parentSid/:agentId', function(req, res) {
-  var parentSid = req.params.parentSid;
-  var agentId = req.params.agentId;
+router.post('/callback', function(req, res) {
+  console.log('in transfer callback');
+  console.log('toAgentId: ', req.query.toAgentId);
+
+  let toAgentId = req.query.toAgentId;
+
+  let actionUrl = transferActionUrl(req);
+  let transferTwiml = twimlGenerator.transferTwiml({
+    agentIds: [toAgentId],
+    timeout: 10,
+    action: actionUrl,
+  });
 
   res.type('text/xml');
-  res.send(twimlGenerator.transferTwiml({
-    agentIds: [agentId],
-    timeout: 10,
-    action: `/phone/action/transfer/${agentId}/${parentSid}`,
-  }).toString());
+  res.send(transferTwiml);
 });
 
 module.exports = router;

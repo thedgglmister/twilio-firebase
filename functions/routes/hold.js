@@ -7,78 +7,127 @@ var twilioCaller = require('../lib/twilio-caller');
 var modelUpdater = require('../lib/model');
 var url = require('url');
 
-
-var holdMusicUrl = function(req) {
-  var pathName = `/phone/hold/enqueue/holdmusic/`;
+//returns the URL of the endpoint to hit when a call should be sent to the holdingQueue.
+var holdCallbackUrl = function(req, holdSid) {
+  var pathname = '/phone/hold/callback';
   return url.format({
     protocol: 'https',
-    host: req.get('host'),
-    pathname: pathName
+    host: req.host,
+    pathname: pathname,
+    query: {
+      agentId: req.query.agentId,
+      holdSid: holdSid,
+    }
   });
 };
 
-var connectTransferUrl = function(req, parentSid, agentId) {
-  var pathName = `/phone/transfer/connect/${parentSid}/${agentId}/`;
+//returns the URL of the endpoint to hit when a call is removed from the holdingQueue.
+var enqueueActionUrl = function(req) {
+  var pathname = '/phone/action/enqueue';
   return url.format({
     protocol: 'https',
-    host: req.get('host'),
-    pathname: pathName
+    host: req.host,
+    pathname: pathname,
+    query: {
+      agentId: req.query.agentId,
+    },
+  });
+};
+
+//returns the URL of the endpoint to hit when an a call should be transfered.
+var transferCallbackUrl = function(req) {
+  var pathname = '/phone/transfer/callback';
+  return url.format({
+    protocol: 'https',
+    host: req.host,
+    pathname: pathname,
+    query: {
+      toAgentId: req.query.agentId,
+    },
   });
 };
 
 
-router.post('/:agentId/', function(req, res) {
-  // if (!req.session.agentId) {
-  //   res.sendStatus(403);
-  // }
+//endpoint hit by client when wanting to move call to hold. updates call to hit hold callback url.
+router.post('/', function(req, res) {
   console.log('moving to hold');
-  var agentId = req.params.agentId;
-  var currentParentSid;
+  console.log('agentId: ', req.query.agentId);
+
+  var agentId = req.query.agentId;
 
   modelUpdater.findAgentStatus(agentId)
     .then(function(doc) {
-      currentParentSid = doc.currentParentSid;
-      var callbackUrl = holdMusicUrl(req);
-      console.log('callback URL: ', callbackUrl);
-      twilioCaller.updateCall(currentParentSid, callbackUrl)
+      let callSid = doc.currentParentSid;
+      // modelUpdater.updateHoldSid(agentId, callSid)
+      //   .then(function() {
+          var callbackUrl = holdCallbackUrl(req, callSid);
+          twilioCaller.updateCall(callSid, callbackUrl)
+            .then(function() {
+              res.sendStatus(200);
+            })
+        // })
+    })
+    .catch(function(error) {
+      console.log(error);
+      res.sendStatus(500);
+    });
+});
+
+
+//endpoint hit by client when wanting to move call off hold. updates call to hit transfer callback url.
+router.post('/unhold', function(req, res) {
+  console.log('in unhold');
+  var agentId = req.query.agentId;
+
+  modelUpdater.findAgentStatus(agentId)
+    .then(function(doc) {
+      let callSid = doc.holdSid;
+      var callbackUrl = transferCallbackUrl(req);
+      twilioCaller.updateCall(callSid, callbackUrl)
         .then(function() {
           res.sendStatus(200);
         })
-        .catch(function(error) {
-          console.log(error);
+        .catch(function(e) {
+          console.log(e);
           res.sendStatus(500);
         });
     });
 });
 
-router.post('/unhold/:agentId/', function(req, res) {
-  // if (!req.session.agentId) {
-  //   res.sendStatus(403);
-  // }
-  console.log('moving to unhold');
-  var agentId = req.params.agentId;
-  var currentParentSid;
 
-  modelUpdater.findAgentStatus(agentId)
-    .then(function(doc) {
-      currentParentSid = doc.currentParentSid;
-      var callbackUrl = connectTransferUrl(req, currentParentSid, agentId);
-      console.log('callback URL: ', callbackUrl);
-      twilioCaller.updateCall(currentParentSid, callbackUrl)
-        .then(function() {
-          res.sendStatus(200);
-        })
-        .catch(function(e) {
-          res.send('The caller ended the call while on hold');
-        });
-    });
-});
 
-router.post('/enqueue/holdmusic', function(req, res) {
+// router.post('/leave/callback/', function(req, res) {
+//   console.log('in leave callback');
+
+//   res.type('text/xml');
+//   res.send(twimlGenerator.leaveTwiml().toString());
+// });
+
+
+//sends twiml to actually put the call in holdingQueue. updates holdSid in database. sets action to the enqueue action, which removes holdSid from database.
+router.post('/callback', function(req, res) {
   //use action to store if caller hangs up. If they hang up, set agents document to null currentparentId. Then in unhold, check if its null, and if so call agent with twiml saying caller hung up?
-  console.log('about to respond with enqueue twiml');
-  res.type('text/xml');
-  res.send(twimlGenerator.enqueueTwiml().toString());
+  console.log('in hold callback');
+  console.log('agentId: ', req.query.agentId);
+  console.log('holdSid: ', req.query.holdSid);
+
+  let agentId = req.query.agentId;
+  let holdSid = req.query.holdSid;
+
+  modelUpdater.updateHoldSid(agentId, holdSid)
+    .then(() => {
+      let actionUrl = enqueueActionUrl(req);
+      let enqueueTwiml = twimlGenerator.enqueueTwiml({
+        timeout: 15,
+        action: actionUrl,
+      });
+      res.type('text/xml');
+      res.send(enqueueTwiml);
+    })
+    .catch((e) => {
+      console.log(e);
+      res.sendStatus(500);
+    });
 });
 
 module.exports = router;

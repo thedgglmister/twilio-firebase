@@ -1,21 +1,18 @@
 'use strict';
 
 var configs = require('./twilio-configs');
+var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
+
 
 var call = function(fromAgentId, toAgentId, callbackUrl) {
+  console.log('in twilio caller call()');
 
-  var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
-  console.log('in twilio-caller.call()');
-  let movingToConference = callbackUrl.includes('conference/connect');
-  console.log(movingToConference);
-  console.log((movingToConference ? `client:${fromAgentId}eeeee` : `client:${fromAgentId}`));
   return client.calls
     .create({
-      from: (movingToConference ? `client:${fromAgentId}conference` : `client:${fromAgentId}`),
-      //from: `client:${fromAgentId}abcd`,
+      from: (`client:${fromAgentId}`),
       to: `client:${toAgentId}`,
       url: callbackUrl
-    });
+    })
 };
 
 // var callNumber = function(toNumber) {
@@ -31,7 +28,11 @@ var call = function(fromAgentId, toAgentId, callbackUrl) {
 
 var updateCall = function(callSid, callbackUrl) {
   console.log('about to update call');
-  var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
+  console.log(callbackUrl);
+  //console.log(client.calls());
+  // if (callSid) {
+  //   console.log(client.calls(callSid));
+  // }
   return client.calls(callSid)
     .update({
       method: 'POST',
@@ -41,7 +42,6 @@ var updateCall = function(callSid, callbackUrl) {
 
 var lookupCall = function(number) {
   console.log('about to lookup caller Id');
-  var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
   return client.lookups.phoneNumbers(number)
     .fetch({
       type: 'caller-name',

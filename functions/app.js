@@ -11,10 +11,10 @@ const actionRouter = require('./routes/action');
 const incomingRouter = require('./routes/incoming');
 const outgoingRouter = require('./routes/outgoing');
 const callerIdRouter = require('./routes/callerid');
-const presenceRouter = require('./routes/presence');
+//const presenceRouter = require('./routes/presence');
 const loginRouter = require('./routes/login');
 const holdRouter = require('./routes/hold');
-const acceptRouter = require('./routes/accept');
+//const acceptRouter = require('./routes/accept');
 const { authenticate } = require('./lib/authenticate');
 
 
@@ -41,10 +41,10 @@ app.use('/transfer', transferRouter);
 app.use('/action', actionRouter);
 app.use('/incoming', incomingRouter);
 app.use('/callerid', callerIdRouter);
-app.use('/presence', presenceRouter);
+//app.use('/presence', presenceRouter);
 app.use('/login', loginRouter);
 app.use('/hold', holdRouter);
-app.use('/accept', acceptRouter);
+//app.use('/accept', acceptRouter);
 app.use('/outgoing', outgoingRouter);
 
 var port = process.env.PORT || 3000;
