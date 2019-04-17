@@ -134,7 +134,7 @@ $(function() {
     $.post(url, function(data) {
       console.log('token callback');
       console.log(data.token);
-      currentAgentId = agentId; 
+      currentAgentId = agentId;
       connectClient(data.token);
       agentPresencesRef.update({
         [currentAgentId]: $statusSelector.val(),
@@ -405,7 +405,7 @@ $(function() {
   }
 
   function moveToConference(e) {
-    let paths = ['conference'];
+    let paths = ['conference']; //##
     let params = {
       agentId: currentAgentId,
     };

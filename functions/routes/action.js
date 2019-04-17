@@ -23,15 +23,30 @@ var agentIdGroups = require('../lib/agent-ids');
 // };
 
 
-var conferenceCallbackUrl = function(req, parentSid) {
-  let pathname = `/phone/conference/callback/`;
+// var conferenceCallbackUrl = function(req, parentSid) {
+//   let pathname = `/phone/conference/callback/`;
+//
+//   return url.format({
+//     protocol: 'https',
+//     host: req.host,
+//     pathname: pathname,
+//     query: {
+//       conferenceName: parentSid,
+//     }
+//   });
+// };
+
+var conferenceCallbackAgentUrl = function(req, conferenceName, agentId, includeAction) {
+  let pathname = `/phone/conference/callback/agent`;
 
   return url.format({
     protocol: 'https',
     host: req.host,
     pathname: pathname,
     query: {
-      conferenceName: parentSid,
+      conferenceName: conferenceName,
+      agentId: agentId,
+      includeAction : includeAction ? '1' : '0',
     }
   });
 };
@@ -71,6 +86,8 @@ router.post('/hunt', function(req, res) {
   var agentIdGroupIndex = parseInt(req.query.agentIdGroupIndex);
   var dialCallStatus = req.body.DialCallStatus;
   var parentSid = req.body.CallSid;
+  console.log('$$$$$$');
+  console.log(req.body);
 
 
 
@@ -100,10 +117,10 @@ router.post('/hunt', function(req, res) {
   else {
     let group = agentIdGroups[agentIdGroupIndex];
     modelUpdater.findConferenceStatusFromGroup(group, parentSid)
-      .then(function(moveToConference) {
-        console.log('moveToConference: ', moveToConference);
-        if (moveToConference) {
-          var callbackUrl = conferenceCallbackUrl(req, parentSid);
+      .then(function(result) {
+        console.log('movingToConference: ', result && result.movingToConference);
+        if (result && result.movingToConference) {
+          var callbackUrl = conferenceCallbackAgentUrl(req, parentSid, result.agentId, false);
           twilioCaller.updateCall(parentSid, callbackUrl)
             .then(() => {
               res.sendStatus(200);
@@ -141,10 +158,10 @@ router.post('/transfer', function(req, res) {
   }
   else {
     modelUpdater.findConferenceStatusFromGroup([agentId], parentSid)
-      .then(function(moveToConference) {
-        console.log('moveToConference: ', moveToConference);
-        if (moveToConference) {
-          var callbackUrl = conferenceCallbackUrl(req, parentSid);
+      .then(function(result) {
+        console.log('movingToConference: ', result && result.movingToConference);
+        if (result && result.movingToConference) {
+          var callbackUrl = conferenceCallbackAgentUrl(req, parentSid, result.agentId, false);
           twilioCaller.updateCall(parentSid, callbackUrl)
             .then(function() {
               res.sendStatus(200);
@@ -165,10 +182,11 @@ router.post('/outgoing', function(req, res) {
   console.log('fromAgentId: ', req.query.fromAgentId);
   console.log('parentSid: ', req.body.CallSid);
   console.log('dialCallStatus: ', req.body.DialCallStatus);
-  //console.log(req.body);
+  console.log(req.body);
 
   var fromAgentId = req.query.fromAgentId;
   var parentSid = req.body.DialCallSid;
+  var childSid = req.body.CallSid;
   var dialCallStatus = req.body.DialCallStatus;
 
   // if (dialCallStatus == 'completed') {
@@ -194,17 +212,17 @@ router.post('/outgoing', function(req, res) {
   // }
   //else {
   modelUpdater.findConferenceStatusFromGroup([fromAgentId], parentSid)
-    .then(function(moveToConference) {
-      console.log('moveToConference: ', moveToConference);
-      if (moveToConference) {
-        var callbackUrl = conferenceCallbackUrl(req, parentSid);
-        twilioCaller.updateCall(parentSid, callbackUrl)
+    .then(function(result) {
+      console.log('movingToConference: ', result && result.movingToConference);
+      if (result && result.movingToConference) {
+        var callbackUrl = conferenceCallbackAgentUrl(req, parentSid, result.agentId, true);
+        twilioCaller.updateCall(childSid, callbackUrl)
           .then(function() {
             res.sendStatus(200);
           });
       }
       else if (dialCallStatus == 'completed') {
-        modelUpdater.updateCurrentCallSids(fromAgentId, null, null)
+        modelUpdater.updateCurrentCallSids(fromAgentId, null, null, null)
           .then(function() {
             res.sendStatus(200);
           })
@@ -266,7 +284,7 @@ router.post('/transfer/statusCallback', function(req, res) {
   let childSid = req.body.CallSid;
 
   if (callStatus == 'in-progress') {
-    modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid)
+    modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid, 'Incoming')
       .then(() => {
         res.sendStatus(200);
       })
@@ -276,7 +294,7 @@ router.post('/transfer/statusCallback', function(req, res) {
       })
   }
   else {
-    modelUpdater.updateCurrentCallSids(callTo, null, null)
+    modelUpdater.updateCurrentCallSids(callTo, null, null, null)
       .then(() => {
         res.sendStatus(200);
       })
@@ -298,7 +316,7 @@ router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
   let callStatus = req.body.CallStatus;
 
   if (callStatus == 'in-progress') {
-    modelUpdater.updateCurrentCallSids(fromAgentId, childSid, parentSid)
+    modelUpdater.updateCurrentCallSids(fromAgentId, childSid, parentSid, 'Outgoing')
     .then(function() {
       res.sendStatus(200);
     })
@@ -323,14 +341,14 @@ router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
 
 
 
-router.post('/conference', function(req, res) {
+router.post('/conference/:agentId', function(req, res) {
   console.log('in conference action');
-  console.log('callTo: ', req.body.To);
+  console.log('agentId: ', req.params.agentId);
   // console.log('call status: ', req.body.CallStatus);
   //console.log(req.body);
 
   // let callStatus = req.body.CallStatus;
-  let callTo = req.body.To.substring(req.body.To.indexOf(':') + 1);
+  let agentId = req.params.agentId;
   // let parentSid = req.body.ParentCallSid;
   // let childSid = req.body.CallSid;
 
@@ -345,7 +363,7 @@ router.post('/conference', function(req, res) {
   //     })
   // }
   //else {
-    modelUpdater.updateAgentConference(callTo, null)
+    modelUpdater.updateAgentConference(agentId, null)
       .then(() => {
         res.sendStatus(200);
       })

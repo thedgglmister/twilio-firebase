@@ -5,7 +5,12 @@ var configs = require('./twilio-configs');
 
 var conferenceTwiml = function(options) {
   var voiceResponse = new VoiceResponse();
-  voiceResponse.dial({action: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference'}).conference({
+  
+  let dialParams = {};
+  if (options.includeAction) {
+    dialParams.action = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/' + (options.agentId ? options.agentId : '');
+  }
+  voiceResponse.dial(dialParams).conference({
       startConferenceOnEnter: options.startConferenceOnEnter,
       endConferenceOnExit: options.endConferenceOnExit,
       waitUrl: options.waitUrl,

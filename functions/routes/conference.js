@@ -12,7 +12,7 @@ var twilioCaller = require('../lib/twilio-caller');
 var AGENT_WAIT_URL = 'http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical';
 
 
-var conferenceCallbackAgentUrl = function(req, conferenceName, agentId) {
+var conferenceCallbackAgentUrl = function(req, conferenceName, agentId, includeAction) {
   let pathname = `/phone/conference/callback/agent`;
 
   return url.format({
@@ -22,17 +22,20 @@ var conferenceCallbackAgentUrl = function(req, conferenceName, agentId) {
     query: {
       conferenceName: conferenceName,
       agentId: agentId,
+      includeAction : includeAction ? '1' : '0',
     }
   });
 };
 
 
 router.post('/callback/agent', function(req, res) {
-  console.log('in conference callback');
+  console.log('in conference agent callback');
   console.log('conferenceName: ', req.query.conferenceName);
 
   let agentId = req.query.agentId;
   let conferenceName = req.query.conferenceName;
+  let includeAction = req.query.includeAction == '1';
+
 
   modelUpdater.updateAgentConference(agentId, conferenceName)
     .then(() => {
@@ -41,6 +44,8 @@ router.post('/callback/agent', function(req, res) {
         startConferenceOnEnter: true,
         endConferenceOnExit: false,
         conferenceName: conferenceName,
+        agentId: agentId,
+        includeAction: includeAction,
       });
       res.type('text/xml');
       res.send(conferenceTwiml);
@@ -51,28 +56,28 @@ router.post('/callback/agent', function(req, res) {
     })
 });
 
-router.post('/callback', function(req, res) {
-  console.log('in conference callback');
-  console.log('conferenceName: ', req.query.conferenceName);
-
-  let conferenceName = req.query.conferenceName;
-
-  // modelUpdater.updateAgentConference(agentId, conferenceName)
-  //   .then(() => {
-      let conferenceTwiml = twimlGenerator.conferenceTwiml({
-        waitUrl: AGENT_WAIT_URL,
-        startConferenceOnEnter: true,
-        endConferenceOnExit: false,
-        conferenceName: conferenceName,
-      });
-      res.type('text/xml');
-      res.send(conferenceTwiml);
-    // })
-    // .catch((e) => {
-    //   console.log(e);
-    //   res.sendStatus(500);
-    // })
-});
+// router.post('/callback', function(req, res) {
+//   console.log('in conference callback');
+//   console.log('conferenceName: ', req.query.conferenceName);
+//
+//   let conferenceName = req.query.conferenceName;
+//
+//   // modelUpdater.updateAgentConference(agentId, conferenceName)
+//   //   .then(() => {
+//       let conferenceTwiml = twimlGenerator.conferenceTwiml({
+//         waitUrl: AGENT_WAIT_URL,
+//         startConferenceOnEnter: true,
+//         endConferenceOnExit: false,
+//         conferenceName: conferenceName,
+//       });
+//       res.type('text/xml');
+//       res.send(conferenceTwiml);
+//     // })
+//     // .catch((e) => {
+//     //   console.log(e);
+//     //   res.sendStatus(500);
+//     // })
+// });
 
 
 router.post('/', function(req, res) {
@@ -109,8 +114,8 @@ router.post('/', function(req, res) {
       let childSid = doc.currentChildSid;
       modelUpdater.updateAgentConference(agentId, parentSid)
         .then(() => {
-          let callbackUrl = conferenceCallbackAgentUrl(req, parentSid, agentId);
-          twilioCaller.updateCall(childSid, callbackUrl)
+          let callbackUrl = conferenceCallbackAgentUrl(req, parentSid, agentId, doc.callDirection != 'Outgoing');
+          twilioCaller.updateCall((doc.callDirection == 'Outgoing' ? parentSid : childSid), callbackUrl)
             .then(()=> {
               res.sendStatus(200);
             });
@@ -149,7 +154,7 @@ router.post('/invite', function(req, res) {
     .then(function(doc) {
       let conferenceName = doc.conferenceName;
       // modelUpdater.updateConferenceName(toAgentId, conferenceName);
-      var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toAgentId);
+      var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toAgentId, true);
       twilioCaller.call(fromAgentId, toAgentId, callbackUrl)
         .then(function() {
           res.sendStatus(200);
@@ -160,6 +165,94 @@ router.post('/invite', function(req, res) {
       res.sendStatus(500);
     })
 });
+
+
+
+// router.post('/outgoingconference', function(req, res) {
+//   console.log('in outgoingconference');
+//   console.log('agentId: ', req.query.agentId);
+//   ///GET CHILD SID
+//
+//   var agentId = req.query.agentId;
+//   //var childSid = req.params.childSid;
+//   //var currentParentSid;
+//   //let conferenceName = 'testConference';
+//
+//   // modelUpdater.updateAgentConference(agentId, conferenceName)
+//   //   .then(() => {
+//   //     modelUpdater.findAgentStatus(agentId)
+//   //       .then((doc) => {
+//   //         let childSid = doc.currentChildSid;
+//   //         let callbackUrl = conferenceCallbackUrl(req, conferenceName);
+//   //         twilioCaller.updateCall(childSid, callbackUrl)
+//   //           .then(()=> {
+//   //             res.sendStatus(200);
+//   //           });
+//   //       })
+//   //   })
+//   //   .catch((e) => {
+//   //     console.log(e);
+//   //     res.sendStatus(500);
+//   //   });
+//
+//
+//   modelUpdater.findAgentStatus(agentId)
+//     .then(function(doc) {
+//       let parentSid = doc.currentParentSid;
+//       let childSid = doc.currentChildSid;
+//       modelUpdater.updateAgentConference(agentId, parentSid)
+//         .then(() => {
+//           let callbackUrl = conferenceCallbackAgentUrl(req, parentSid, agentId);
+//           twilioCaller.updateCall(parentSid, callbackUrl)
+//             .then(()=> {
+//               res.sendStatus(200);
+//             });
+//         });
+//     })
+//     .catch((e) => {
+//       console.log(e);
+//       res.sendStatus(500);
+//     });
+//
+//
+//
+//
+//
+//   //     return modelUpdater.updateAgentStatus([agentId], currentParentSid, true);
+//   //   })
+//   //   .then(function() {
+//   //     var callbackUrl = connectConferenceUrl(req, currentParentSid);
+//   //     twilioCaller.updateCall(childSid, callbackUrl);
+//   //   })
+//   //   .then(function() {
+//   //     res.sendStatus(200);
+//   //   });
+// });
+
+
+// router.post('/invite', function(req, res) {
+//   console.log('in conference invite');
+//   console.log('fromAgentId: ', req.query.fromAgentId);
+//   console.log('toAgentId: ', req.query.toAgentId);
+//
+//   var toAgentId = req.query.toAgentId;
+//   var fromAgentId = req.query.fromAgentId;
+//
+//   modelUpdater.findAgentStatus(fromAgentId)
+//     .then(function(doc) {
+//       let conferenceName = doc.conferenceName;
+//       // modelUpdater.updateConferenceName(toAgentId, conferenceName);
+//       var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toAgentId);
+//       twilioCaller.call(fromAgentId, toAgentId, callbackUrl)
+//         .then(function() {
+//           res.sendStatus(200);
+//         });
+//     })
+//     .catch((e) => {
+//       console.log(e);
+//       res.sendStatus(500);
+//     })
+// });
 
 
 module.exports = router;

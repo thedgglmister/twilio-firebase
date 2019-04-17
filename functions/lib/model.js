@@ -6,7 +6,7 @@ var agentsRef = admin.database().ref().child('agents');
 var agentPresencesRef = admin.database().ref().child('agentPresences');
 
 
-var updateCurrentCallSids = function(agentId, parentSid, childSid) {
+var updateCurrentCallSids = function(agentId, parentSid, childSid, callDirection) {
   console.log('in update current call sids');
   console.log('parentSid: ', parentSid);
   console.log('childSid: ', childSid);
@@ -17,6 +17,7 @@ var updateCurrentCallSids = function(agentId, parentSid, childSid) {
   //           let doc = snapshot.val();
             let updates = {};
             updates.currentParentSid = parentSid;
+            updates.callDirection = callDirection;
             if (childSid !== undefined) {
               updates.currentChildSid = childSid;
             }
@@ -77,6 +78,7 @@ var updateAgentConference = function(agentId, conferenceName) {
               conferenceName: conferenceName,
               currentParentSid: null,
               currentChildSid: null,
+              callDirection: null,
             };
             return agentStatusRef.update(updates)
             // .catch((error) => {
@@ -99,7 +101,10 @@ var findConferenceStatusFromGroup = function(agentIds, parentSid) {
       console.log('doc: ', doc);
       for (let agent in doc) {
         if (agentIds.includes(agent) && doc[agent].conferenceName != null && doc[agent].conferenceName == parentSid) {
-          return true;
+          return {
+            movingToConference: true,
+            agentId: agent
+          };
         }
       }
       return false;
