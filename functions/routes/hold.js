@@ -57,6 +57,7 @@ router.post('/', function(req, res) {
 
   modelUpdater.findAgentStatus(agentId)
     .then(function(doc) {
+      console.log('123321');
       let callSid = doc.currentParentSid;
       // modelUpdater.updateHoldSid(agentId, callSid)
       //   .then(function() {

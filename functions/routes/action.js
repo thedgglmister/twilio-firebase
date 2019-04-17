@@ -32,7 +32,6 @@ var conferenceCallbackUrl = function(req, parentSid) {
     pathname: pathname,
     query: {
       conferenceName: parentSid,
-      
     }
   });
 };
@@ -100,7 +99,7 @@ router.post('/hunt', function(req, res) {
   }
   else {
     let group = agentIdGroups[agentIdGroupIndex];
-    modelUpdater.findConferenceStatusFromGroup(group, parentSid)    
+    modelUpdater.findConferenceStatusFromGroup(group, parentSid)
       .then(function(moveToConference) {
         console.log('moveToConference: ', moveToConference);
         if (moveToConference) {
@@ -158,6 +157,69 @@ router.post('/transfer', function(req, res) {
         }
       });
   }
+});
+
+
+router.post('/outgoing', function(req, res) {
+  console.log('in outgoing action');
+  console.log('fromAgentId: ', req.query.fromAgentId);
+  console.log('parentSid: ', req.body.CallSid);
+  console.log('dialCallStatus: ', req.body.DialCallStatus);
+  //console.log(req.body);
+
+  var fromAgentId = req.query.fromAgentId;
+  var parentSid = req.body.DialCallSid;
+  var dialCallStatus = req.body.DialCallStatus;
+
+  // if (dialCallStatus == 'completed') {
+  //   modelUpdater.updateCurrentCallSids(fromAgentId, null, null)
+  //     .then(function() {
+  //       res.sendStatus(200);
+  //     })
+  //     .catch((e) => {
+  //       console.log(e);
+  //       res.sendStatus(500);
+  //     });
+  // }
+
+
+  //var dialCallStatus = req.body.DialCallStatus
+
+  // if (dialCallStatus == 'no-answer' || dialCallStatus == 'busy') {
+  //   let recipientAgentId = agentId;
+  //   let callbackUrl = transcribeCallbackUrl(req, recipientAgentId);
+  //   let recordTwiml = twimlGenerator.recordTwiml(callbackUrl);
+
+  //   res.send(recordTwiml);
+  // }
+  //else {
+  modelUpdater.findConferenceStatusFromGroup([fromAgentId], parentSid)
+    .then(function(moveToConference) {
+      console.log('moveToConference: ', moveToConference);
+      if (moveToConference) {
+        var callbackUrl = conferenceCallbackUrl(req, parentSid);
+        twilioCaller.updateCall(parentSid, callbackUrl)
+          .then(function() {
+            res.sendStatus(200);
+          });
+      }
+      else if (dialCallStatus == 'completed') {
+        modelUpdater.updateCurrentCallSids(fromAgentId, null, null)
+          .then(function() {
+            res.sendStatus(200);
+          })
+          .catch((e) => {
+            console.log(e);
+            res.sendStatus(500);
+          });
+      }
+      else {
+        let hangupTwiml = twimlGenerator.hangupTwiml();
+        res.type('text/xml');
+        res.send(hangupTwiml);
+      }
+    });
+  //}
 });
 
 
@@ -229,14 +291,32 @@ router.post('/transfer/statusCallback', function(req, res) {
 
 router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
   console.log("in outgoing statusCallback");
-  console.log(req.body);
+  //console.log(req.body);
   let fromAgentId = req.params.fromAgentId;
   let childSid = req.body.CallSid;
+  let parentSid = req.body.ParentCallSid;
+  let callStatus = req.body.CallStatus;
 
-  modelUpdater.updateCurrentCallSids(fromAgentId, childSid)
+  if (callStatus == 'in-progress') {
+    modelUpdater.updateCurrentCallSids(fromAgentId, childSid, parentSid)
     .then(function() {
       res.sendStatus(200);
-    });
+    })
+    .catch((e) => {
+      console.log(e);
+      res.sendStatus(500);
+    })
+  }
+  // else {
+  //   modelUpdater.updateCurrentCallSids(fromAgentId, null, null)
+  //   .then(function() {
+  //     res.sendStatus(200);
+  //   })
+  //   .catch((e) => {
+  //     console.log(e);
+  //     res.sendStatus(500);
+  //   })
+  // }
 });
 
 

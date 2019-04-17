@@ -27,7 +27,7 @@ var call = function(fromAgentId, toAgentId, callbackUrl) {
 // };
 
 var updateCall = function(callSid, callbackUrl) {
-  console.log('about to update call');
+  console.log('in update call');
   console.log(callbackUrl);
   //console.log(client.calls());
   // if (callSid) {

@@ -107,21 +107,21 @@ router.post('/', function(req, res) {
     .then(function(doc) {
       let parentSid = doc.currentParentSid;
       let childSid = doc.currentChildSid;
-      // modelUpdater.updateAgentConference(agentId, parentSid)
-      //   .then(() => {
+      modelUpdater.updateAgentConference(agentId, parentSid)
+        .then(() => {
           let callbackUrl = conferenceCallbackAgentUrl(req, parentSid, agentId);
           twilioCaller.updateCall(childSid, callbackUrl)
             .then(()=> {
               res.sendStatus(200);
             });
-        // });
+        });
     })
     .catch((e) => {
       console.log(e);
       res.sendStatus(500);
     });
 
-      
+
 
 
 

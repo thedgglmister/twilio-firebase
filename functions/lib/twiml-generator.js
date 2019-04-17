@@ -37,15 +37,17 @@ var transferTwiml = function(options) {
   return voiceResponse.toString();
 };
 
-var callNumberTwiml = function(fromAgentId, toNumber){
+var dialNumberTwiml = function(options){
+  console.log('in dial number twiml');
   var voiceResponse = new VoiceResponse();
   const dial = voiceResponse.dial({
-    callerId: configs.twilioNumber
+    callerId: configs.twilioNumber,
+    action: options.action,
   });
   dial.number({
-    statusCallbackEvent: 'answered',
-    statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/outgoing/statusCallback/${fromAgentId}`,
-  }, toNumber);
+    statusCallbackEvent: 'answered completed',
+    statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/outgoing/statusCallback/${options.fromAgentId}`,
+  }, options.toNumber);
   return voiceResponse.toString();
 };
 
@@ -84,7 +86,7 @@ var enqueueTwiml = function(options){
 
 // var leaveTwiml = function(agentId, options){
 //   var voiceResponse = new VoiceResponse();
-//   voiceResponse.leave(); 
+//   voiceResponse.leave();
 
 //   return voiceResponse;
 // };
@@ -95,4 +97,4 @@ module.exports.recordTwiml = recordTwiml;
 module.exports.hangupTwiml = hangupTwiml;
 //module.exports.leaveTwiml = leaveTwiml;
 module.exports.enqueueTwiml = enqueueTwiml;
-module.exports.callNumberTwiml = callNumberTwiml;
+module.exports.dialNumberTwiml = dialNumberTwiml;
