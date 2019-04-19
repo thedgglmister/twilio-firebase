@@ -13,20 +13,17 @@ need to use this to tell if ive just been dialed into a conference, so i can dis
 
 $(function() {
 
-  console.log(document.cookie);
   console.log("in main.js");
   console.log(currentAgentId);
 
-  var agentIds = {
+  var agentIds = { //temp
     agent1: 'mkaufman',
     agent2: 'lcampbell',
     agent3: 'biremonger',
     agent4: 'jmarty',
   };
 
-  //var currentAgentId;
   var currentConnection;
-  var currentChildSid;
   var callerIdString;
   var onHold = false;
   var $callStatus = $('#call-status');
@@ -34,52 +31,24 @@ $(function() {
   var $connectAgent2Button = $("#connect-agent2-button");
   var $connectAgent3Button = $("#connect-agent3-button");
   var $connectAgent4Button = $("#connect-agent4-button");
-
   var $answerCallButton = $("#answer-call-button");
   var $hangupCallButton = $("#hangup-call-button");
   var $startConferenceButton = $("#start-conference-button");
-  // var $dialAgent1Button = $("#dial-agent1-button");
-  // var $dialAgent2Button = $("#dial-agent2-button");
-  // var $dialAgent3Button = $("#dial-agent3-button");
-  // var $transferAgent1Button = $("#transfer-agent1-button");
-  // var $transferAgent2Button = $("#transfer-agent2-button");
-  // var $transferAgent3Button = $("#transfer-agent3-button");
+  var $holdCnt = $("#hold-cnt");
   var $holdButton = $("#hold-button");
   var $offHoldButton = $("#off-hold-button");
   var $callButton = $("#call-button");
   var $outboundCnt = $("#outbound-cnt");
   var $dialInput = $("#dial-input");
   var $logoutButton = $("#logout-btn");
-
   var $transferCnt = $('#transfer-cnt');
   var $dialInCnt = $('#dial-in-cnt');
-
   var $statusSelector = $("#status-selector");
   var $ringtoneSelector = $("#ringtone-selector");
   var $speakerSelector = $("#speaker-selector");
-
+  var $window = $(window);
 
   var baseUrl = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone';
-
-  $connectAgent1Button.on('click', { agentId: agentIds.agent1 }, agentClickHandler);
-  $connectAgent2Button.on('click', { agentId: agentIds.agent2 }, agentClickHandler);
-  $connectAgent3Button.on('click', { agentId: agentIds.agent3 }, agentClickHandler);
-  $connectAgent4Button.on('click', { agentId: agentIds.agent4 }, agentClickHandler);
-  // $dialAgent1Button.on('click', { agentId: agentIds.agent1 }, dialAgent);
-  // $dialAgent2Button.on('click', { agentId: agentIds.agent2 }, dialAgent);
-  // $dialAgent3Button.on('click', { agentId: agentIds.agent3 }, dialAgent);
-  // $transferAgent1Button.on('click', { agentId: agentIds.agent1 }, transferAgent);
-  // $transferAgent2Button.on('click', { agentId: agentIds.agent2 }, transferAgent);
-  // $transferAgent3Button.on('click', { agentId: agentIds.agent3 }, transferAgent);
-
-  $holdButton.on('click', {}, putCallOnHold);
-  $offHoldButton.on('click', {}, takeCallOffHold);
-  $startConferenceButton.on('click', {}, moveToConference);
-  $hangupCallButton.on('click', hangUp);
-  $callButton.on('click', call);
-
-
-
 
   // Initialize Firebase
   var config = {
@@ -92,378 +61,54 @@ $(function() {
   };
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
+  let agentStatusesRef = firebase.database().ref('agentStatuses');
 
-///REAL need to uncomment out
-  //fetchToken(currentAgentId);
-////
+  ///REAL need to uncomment out
+    //fetchToken(currentAgentId);
+  ////
 
+  $connectAgent1Button.on('click', { agentId: agentIds.agent1 }, agentClickHandler);
+  $connectAgent2Button.on('click', { agentId: agentIds.agent2 }, agentClickHandler);
+  $connectAgent3Button.on('click', { agentId: agentIds.agent3 }, agentClickHandler);
+  $connectAgent4Button.on('click', { agentId: agentIds.agent4 }, agentClickHandler);
+  $holdButton.on('click', {}, putCallOnHold);
+  $offHoldButton.on('click', {}, takeCallOffHold);
+  $startConferenceButton.on('click', {}, moveToConference);
+  $hangupCallButton.on('click', handleHangupCallButtonClick);
+  $answerCallButton.on('click', handleAnswerCallButtonClick);
+  $callButton.on('click', call);
+  $logoutButton.on('click', logout);
+  $window.on('keydown', sendDigits);
+  $window.on('unload', setPresenceOffline);
+  $statusSelector.on('change', handleStatusSelectorChange);
+  $speakerSelector.on('change', handleSpeakerSelectorChange);
+  $ringtoneSelector.on('change', handleRingtoneSelectorChange);
 
 
-  $(window).on('keydown', function(event) {
-    console.log(event.key);
-    let sendableChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '*', '#'];
-    if (sendableChars.includes(event.key) && currentConnection){
-      currentConnection.sendDigits(event.key);
-    }
-  });
 
 
-  function agentClickHandler(e) {
-  ///COMMENT OUT
-    var agentId = e.data.agentId;
-    disableConnectButtons(true);
-    fetchToken(agentId);
-  /////
-  }
-
-  function disableConnectButtons(disable) {
-    $connectAgent1Button.prop('disabled', disable);
-    $connectAgent2Button.prop('disabled', disable);
-    $connectAgent3Button.prop('disabled', disable);
-    $connectAgent4Button.prop('disabled', disable);
-  }
-
-  function fetchToken(agentId) {
-    console.log('fetching token');
-    let paths = ['token'];
-    let params = {
-      agentId: agentId,
-    };
-    let url = createUrl(baseUrl, paths, params);
-    currentAgentId
-    $.post(url, function(data) {
-      console.log('token callback');
-      console.log(data.token);
-      currentAgentId = agentId;
-      connectClient(data.token);
-      agentPresencesRef.update({
-        [currentAgentId]: $statusSelector.val(),
-      });
-    }, 'json');
-  }
-
-
-  function connectClient(token) {
-    Twilio.Device.setup(token, {debug: true});
-  }
-
-
-
-
-
-
-
-
-
-
-  Twilio.Device.ready(function (device) {
-    updateCallStatus("Ready");
-    agentConnectedHandler(currentAgentId);
-    console.log('readyyy');
-
-    setupSpeakerOptions();
-
-    // if (currentAgentId == 'mkaufman') {
-    //   console.log('in if');
-    //   let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
-    //   let ringingDevice = availableAudioDevices.find((device) => {
-    //     return device.label.includes('Internal Speakers');
-    //   });
-    //   let ringingDeviceId = ringingDevice ? ringingDevice.deviceId : 'default';
-    //   console.log(ringingDeviceId);
-    //   Twilio.Device.audio.ringtoneDevices.set(ringingDeviceId);
-    // }
-    // else {
-    //   Twilio.Device.audio.ringtoneDevices.set('default');
-    // }
-    // console.log(Twilio.Device.audio.speakerDevices.get());
-
-    //Twilio.Device.audio.ringtoneDevices.set('default');
-
-    Twilio.Device.audio.on('deviceChange', (e) => {
-
-      console.log('on device change');
-
-      let oldRingtoneDeviceId = $ringtoneSelector.val();
-      let oldSpeakerDeviceId = $speakerSelector.val();
-
-      $ringtoneSelector.empty();
-      $speakerSelector.empty();
-      setupSpeakerOptions();
-
-      let oldRingtoneIdExists = false;
-      let oldSpeakerIdExists = false;
-      let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
-      for (let audioDevice of availableAudioDevices) {
-        oldRingtoneIdExists = oldRingtoneIdExists || audioDevice.deviceId == oldRingtoneDeviceId;
-        oldSpeakerIdExists = oldSpeakerIdExists || audioDevice.deviceId == oldSpeakerDeviceId;
-      }
-
-      if (oldRingtoneIdExists) {
-        console.log('abc1');
-        $ringtoneSelector.val(oldRingtoneDeviceId);
-      }
-      else {
-        console.log('abc2');
-        $ringtoneSelector.val('default');
-      }
-      if (oldSpeakerIdExists) {
-        console.log('abc3');
-        $speakerSelector.val(oldSpeakerDeviceId);
-      }
-      else {
-        console.log('abc4');
-        $speakerSelector.val('default');
-      }
-    });
-
-
-    Twilio.Device.audio.outgoing(false);
-  });
-
-  function agentConnectedHandler(agentId) {
-    $('#connect-agent-row').addClass('hidden');
-    $('#connected-agent-row').removeClass('hidden');
-    updateCallStatus("Connected as: " + agentId);
-/*
-    //if (agentId === agentIds.agent1) {
-      $dialAgent1Button.removeClass('hidden').prop('disabled', true);
-      $dialAgent2Button.removeClass('hidden').prop('disabled', true);
-      $dialAgent3Button.removeClass('hidden').prop('disabled', true);
-      $startConferenceButton.removeClass('hidden').prop('disabled', true);
-      $transferAgent1Button.removeClass('hidden').prop('disabled', true);
-      $transferAgent2Button.removeClass('hidden').prop('disabled', true);
-      $transferAgent3Button.removeClass('hidden').prop('disabled', true);
-    //}
-    //else {
-    //  $dialAgent2Button.addClass('hidden')
-    //  $dialAgent3Button.addClass('hidden')
-    //  $startConferenceButton.addClass('hidden');
-    //  $transferAgent2Button.addClass('hidden');
-    //  $transferAgent3Button.addClass('hidden');
-    //}
-*/
-  }
-
-
-
-
-
-  Twilio.Device.incoming(function(connection) {
-    if (onHold) {
-      connection.ignore();
-      return;
-    }
-    currentConnection = connection;
-    window.addEventListener("beforeunload", preventUnload);
-    currentChildSid = connection.parameters.CallSid;
-
-    // if (connection.parameters.From.endsWith('@conference')) {
-    //   alert(123);
-    // }
-    updateCallerIdString(connection.parameters.From);
-    // console.log(callerIdString + '#');
-    // updateCallStatus("Incoming call: " + callerIdString);
-
-
-    $hangupCallButton.prop('disabled', false);
-    $answerCallButton.prop('disabled', false);
-    $outboundCnt.addClass('hidden').prop('disabled', true);
-
-
-    // Set a callback to be executed when the connection is accepted
-    connection.accept(function() {
-      console.log("accccepted");
-      //$.post(baseUrl + '/accept/' + currentAgentId); //should set parentId to currentParentId in mongo
-
-      $answerCallButton.prop('disabled', true);
-      if (connection.parameters.From.endsWith('conference')) {               /////this needs to be based on database.
-        updateCallStatus("In conference");
-        $dialInCnt.removeClass('hidden');
-        // $dialAgent1Button.removeClass('hidden').prop('disabled', false);
-        // $dialAgent2Button.removeClass('hidden').prop('disabled', false);
-        // $dialAgent3Button.removeClass('hidden').prop('disabled', false);
-      }
-      else {
-        updateCallStatus("In call: " + callerIdString); //what if  in a conference?
-        $startConferenceButton.removeClass('hidden').prop('disabled', false);
-        // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-        // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-        // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
-        $transferCnt.removeClass('hidden');
-
-        $holdButton.removeClass('hidden').prop('disabled', false);
-      }
-      $answerCallButton.prop('disabled', true);
-      //$dialAgent1Button.prop('disabled', false);
-      //$dialAgent2Button.prop('disabled', false);
-      //$dialAgent3Button.prop('disabled', false);
-      // $startConferenceButton.removeClass('hidden').prop('disabled', false);
-      // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-      // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-      // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
-      // $holdButton.removeClass('hidden').prop('disabled', false);
-    });
-
-    connection.error(function(error) {
-      console.log('errrororrr');
-      console.log(error.message);
-    });
-
-    $answerCallButton.click(function() {
-      console.log('accept clicked');
-      connection.accept();
-    });
-
-    $hangupCallButton.click(function() {
-      console.log('hangup clicked');
-      connection.ignore();
-    });
-  });
-
-
-
-  Twilio.Device.cancel(function (connection) { //what happens on conference dial in?
-    console.log('canceledd');
-    console.log('on hold: ' + onHold);
-    if (!onHold) {
-      callEndedHandler();
-      //Twilio.Device.destroy();
-      window.removeEventListener("beforeunload", preventUnload);
-      currentConnection = null;
-      //refreshPage();
-    }
-  });
-
-  Twilio.Device.disconnect(function(connection) {
-    console.log('disconnectedd');
-    console.log('on hold: ' + onHold);
-    callEndedHandler();
-    //Twilio.Device.destroy();
-    window.removeEventListener("beforeunload", preventUnload);
-    currentConnection = null;
-    //refreshPage();
-  });
-
-  Twilio.Device.error(function (error) {
-    console.log("error: " + error.message);
-    updateCallStatus("ERROR: " + error.message);
-    callEndedHandler(true);
-    window.removeEventListener("beforeunload", preventUnload);
-    currentConnection = null;
-    //refreshPage();
-  });
-
-  Twilio.Device.offline(function(device) {
-    console.log("offline");
-    window.removeEventListener("beforeunload", preventUnload);
-    currentConnection = null;
-    //refreshPage();
-
-    //need to check that this works, as well as change call status...
-    fetchToken(currentAgentId);
-  });
-
-
-
-
-//call not ansered -->sends cancel event
-//call ignored --> sends cancel event
-//call canceld --> sends csancel event
-//call error -->error
-//call disconnect -->sends disconnect
-//offline event
-
-//on offline, setup again
-//the others just need to destroy
-
-
-
-
-  function dialAgent(e) {
-    let paths = ['conference', 'invite'];
-    let params = {
-      fromAgentId: currentAgentId,
-      toAgentId: e.data.agentId,
-    };
-    let url = createUrl(baseUrl, paths, params);
-    $.post(url);
-  }
-
-
-  function transferAgent(e) {
-    let paths = ['transfer'];
-    let params = {
-      fromAgentId: currentAgentId,
-      toAgentId: e.data.agentId,
-    };
-    let url = createUrl(baseUrl, paths, params);
-    $.post(url, function(response) {
-      callEndedHandler();
-      onHold = false;
-    });
-  }
-
-  function moveToConference(e) {
-    let paths = ['conference']; //##
-    let params = {
-      agentId: currentAgentId,
-    };
-    let url = createUrl(baseUrl, paths, params);
-
-    $.post(url, function(response) {
-      updateCallStatus('In conference');
-      $startConferenceButton.prop('disabled', true);
-      // $transferAgent1Button.addClass('hidden').prop('disabled', true);
-      // $transferAgent2Button.addClass('hidden').prop('disabled', true);
-      // $transferAgent3Button.addClass('hidden').prop('disabled', true);
-      $transferCnt.addClass('hidden');
-
-      $holdButton.addClass('hidden').prop('disabled', true);
-      // $dialAgent1Button.removeClass('hidden').prop('disabled', false);
-      // $dialAgent2Button.removeClass('hidden').prop('disabled', false);
-      // $dialAgent3Button.removeClass('hidden').prop('disabled', false);
-      $dialInCnt.removeClass('hidden');
-    });
-  }
-
-  function hangUp() {
-    Twilio.Device.disconnectAll();
-  }
-
-
-  function callEndedHandler(onError) {
-    console.log('in call ended handler');
-
-    // $dialAgent1Button.addClass('hidden').prop('disabled', true);
-    // $dialAgent2Button.addClass('hidden').prop('disabled', true);
-    // $dialAgent3Button.addClass('hidden').prop('disabled', true);
-    $dialInCnt.addClass('hidden');
-    $startConferenceButton.addClass('hidden').prop('disabled', true);
-    // $transferAgent1Button.addClass('hidden').prop('disabled', true);
-    // $transferAgent2Button.addClass('hidden').prop('disabled', true);
-    // $transferAgent3Button.addClass('hidden').prop('disabled', true);
-    $transferCnt.addClass('hidden');
-    $holdButton.addClass('hidden').prop('disabled', true);
-    $offHoldButton.addClass('hidden').prop('disabled', true);
-
-    $hangupCallButton.prop('disabled', true);
-    $answerCallButton.prop('disabled', true);
-
-    //$callButton.prop('disabled', false);
-    $outboundCnt.removeClass('hidden').prop('disabled', false);
-
-
-    if (!onError) {
-      updateCallStatus("Connected as: " + currentAgentId);
-    }
-  }
-
-
-
-  function updateCallStatus(status) {
-    $callStatus.text(status);
-  }
+
+
+
+  Twilio.Device.ready(handleDeviceReady);
+  Twilio.Device.incoming(handleDeviceIncoming);
+  Twilio.Device.cancel(callEndedHandler);
+  Twilio.Device.disconnect(callEndedHandler);
+  Twilio.Device.error(handleDeviceError);
+  Twilio.Device.offline(handleDeviceOffline);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   function updateCallerIdString(fromNumber) {
@@ -507,20 +152,243 @@ $(function() {
   }
 
 
-  function refreshPage() {
-    // setTimeout(function() {
-    //   location.reload();
-    // }, 1000);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  agentPresencesRef.once('value', initPresences);
+  agentPresencesRef.on('value', handlePresencesChange);
+  agentStatusesRef.on('value', handleAgentStatusChange);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//////// Helpers //////////
+
+  function sendDigits(event) {
+    console.log(event.key);
+    let sendableChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '*', '#'];
+    if (sendableChars.includes(event.key) && currentConnection){
+      currentConnection.sendDigits(event.key);
+    }
   }
 
-  function preventUnload(event) {
-    // Most browsers.
-    console.log('before prvent default');
-    event.preventDefault();
-    console.log('after prvent default');
 
-    // Chrome/Chromium based browsers still need this one.
-    event.returnValue = "Please don't leave the page while on a call";
+  function agentClickHandler(event) {
+  ///COMMENT OUT
+    var agentId = event.data.agentId;
+    //disableConnectButtons(true);
+    fetchToken(agentId);
+  /////
+  }
+
+  function fetchToken(agentId) {
+    console.log('fetching token');
+
+    let paths = ['token'];
+    let params = {
+      agentId: agentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+
+    let onSuccess = function(data) {
+      console.log('token callback');
+      currentAgentId = agentId;
+      connectClient(data.token);
+      agentPresencesRef.update({
+        [currentAgentId]: $statusSelector.val(),
+      });
+      agentStatusesRef.once('value', handleAgentStatusChange);
+    }
+
+    $.ajax({
+      type: "POST",
+      url: url,
+      success: onSuccess,
+      dataType: 'json'
+    });
+  }
+
+
+  function connectClient(token) {
+    Twilio.Device.setup(token, {debug: true});
+  }
+
+
+  function agentConnectedHandler(agentId) {
+    $('#connect-agent-row').addClass('hidden');
+    $('#connected-agent-row').removeClass('hidden');
+    updateCallStatus("Connected as: " + agentId);
+  }
+
+
+  function handleDeviceChange(e) {
+    console.log('in handleDeviceChange');
+
+    let oldRingtoneDeviceId = $ringtoneSelector.val();
+    let oldSpeakerDeviceId = $speakerSelector.val();
+
+    $ringtoneSelector.empty();
+    $speakerSelector.empty();
+    setupSpeakerOptions();
+
+    let oldRingtoneIdExists = false;
+    let oldSpeakerIdExists = false;
+    let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
+    for (let audioDevice of availableAudioDevices) {
+      oldRingtoneIdExists = oldRingtoneIdExists || audioDevice.deviceId == oldRingtoneDeviceId;
+      oldSpeakerIdExists = oldSpeakerIdExists || audioDevice.deviceId == oldSpeakerDeviceId;
+    }
+
+    if (oldRingtoneIdExists) {
+      $ringtoneSelector.val(oldRingtoneDeviceId);
+    }
+    else {
+      $ringtoneSelector.val('default');
+    }
+    if (oldSpeakerIdExists) {
+      $speakerSelector.val(oldSpeakerDeviceId);
+    }
+    else {
+      $speakerSelector.val('default');
+    }
+  }
+
+  function handleAcceptCall() {
+    console.log("in handleAcceptCall");
+    updateCallStatus("In call: " + callerIdString);
+    $answerCallButton.prop('disabled', true);
+  }
+
+  function handleConnectionError(error) {
+    console.log('in hanldeConnectionError');
+    console.log(error.message);
+  }
+
+  function handleAnswerCallButtonClick() {
+    currentConnection.accept();
+  }
+
+  function handleHangupCallButtonClick() {
+    Twilio.Device.disconnectAll();
+    try {
+      currentConnection.ignore();
+    }
+    catch(error) {}
+  }
+
+  function handleDeviceReady(device) {
+    updateCallStatus("Ready");
+    agentConnectedHandler(currentAgentId);
+    setupSpeakerOptions();
+    Twilio.Device.audio.on('deviceChange', handleDeviceChange);
+    Twilio.Device.audio.outgoing(false);
+  }
+
+  function handleDeviceIncoming(connection) {
+    if (onHold) {
+      connection.ignore();
+      return;
+    }
+
+    currentConnection = connection;
+    $hangupCallButton.prop('disabled', false);
+    $answerCallButton.prop('disabled', false);
+    updateCallerIdString(connection.parameters.From);
+    window.addEventListener("beforeunload", preventUnload);
+    connection.accept(handleAcceptCall);
+    connection.error(handleConnectionError);
+  }
+
+  function handleDeviceError() {
+    console.log("error: " + error.message);
+    updateCallStatus("ERROR: " + error.message);
+    window.removeEventListener("beforeunload", preventUnload);
+    $hangupCallButton.prop('disabled', true);
+    $answerCallButton.prop('disabled', true);
+    currentConnection = null;
+  }
+
+  function callEndedHandler() {
+    console.log('in call ended handler');
+
+    $hangupCallButton.prop('disabled', true);
+    $answerCallButton.prop('disabled', true);
+    currentConnection = null;
+    updateCallStatus("Connected as: " + currentAgentId);
+  }
+
+  function handleDeviceOffline() {
+    console.log("in handleDeviceOffline");
+    callEndedHandler();
+    fetchToken(currentAgentId);
+  }
+
+  function dialAgent(e) {
+    let paths = ['conference', 'invite'];
+    let params = {
+      fromAgentId: currentAgentId,
+      toAgentId: e.data.agentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+    $.post(url);
+  }
+
+
+  function transferAgent(e) {
+    let paths = ['transfer'];
+    let params = {
+      fromAgentId: currentAgentId,
+      toAgentId: e.data.agentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+    $.post(url);
+  }
+
+  function moveToConference(e) {
+    let paths = ['conference'];
+    let params = {
+      agentId: currentAgentId,
+    };
+    let url = createUrl(baseUrl, paths, params);
+
+    $.post(url);
   }
 
   function putCallOnHold() {
@@ -529,193 +397,101 @@ $(function() {
       agentId: currentAgentId,
     }
     let url = createUrl(baseUrl, paths, params);
-
-    $.post(url, function(response) {
-      onHold = true;
-      updateCallStatus("On hold");
-      $holdButton.addClass('hidden').prop('disabled', true);
-      $offHoldButton.removeClass('hidden').prop('disabled', false);
-      $transferCnt.removeClass('hidden');
-      $outboundCnt.addClass('hidden').prop('disabled', true);
-    });
-
-    //what about transferring while they are on hold? --- Works. Test that I can get new calls after.
-    //what about conferencing while they are on hold? --- Can't work because involves action on the callers end to get them into conference, and since they won't be hung up on, action won't get called.
-    //what if they hang up while they are on hold? --- No way for me to know. WHAT HAPPENS WHEN I TAKE THEM OFF HOLD?
-    //what if I hang up while they are on hold? --- Right now can't hang up. Can change hangup button listener to send hangup twiml to caller?
-    //what if I get a new call? --- They go to voicemail
-    //do any buttons need to be disabled? (hold hidden and unhold displayed, for example)
+    $.post(url);
   }
 
   function takeCallOffHold() {
-    onHold = false;
     let paths = ['hold', 'unhold'];
     let params = {
       agentId: currentAgentId,
     }
     let url = createUrl(baseUrl, paths, params);
-    callEndedHandler();
-    $.post(url, function(response) {
-      console.log(response);
-      if (response != 'OK') {
-        alert(response);
-      }
-      $offHoldButton.addClass('hidden').prop('disabled', true);
-    });
-    //move call out of queue
-    //either need to answer or do an auto answer?
-
+    $.post(url);
   }
 
+  function updateCallStatus(status) {
+    $callStatus.text(status);
+  }
 
-  function call() {
-    var rawToNumber = $dialInput.val();
-    var toNumber = '';
-    for (var i = 0; i < rawToNumber.length; i++) {
-      var char = rawToNumber[i];
-      if (!isNaN(parseInt(char))) {
-        toNumber += char;
-      }
-    }
-    console.log('toNumber:' + toNumber);
-    var body = {
-      toNumber: toNumber,
-      fromAgentId: currentAgentId
-     };
-    currentConnection = Twilio.Device.connect(body);
-    callerIdString = toNumber;
-    updateCallStatus("In Call: " + callerIdString);
-
-
-    window.addEventListener("beforeunload", preventUnload);
-    $hangupCallButton.prop('disabled', false);
-    $outboundCnt.addClass('hidden').prop('disabled', true);
-
-    // $transferAgent1Button.removeClass('hidden').prop('disabled', false);
-    // $transferAgent2Button.removeClass('hidden').prop('disabled', false);
-    // $transferAgent3Button.removeClass('hidden').prop('disabled', false);
-    $transferCnt.removeClass('hidden');
-    $holdButton.removeClass('hidden').prop('disabled', false);
-    //$holdButton.removeClass('hidden').prop('disabled', false);
+  function preventUnload(event) {
+    // Most browsers.
+    event.preventDefault();
+    // Chrome/Chromium based browsers still need this one.
+    event.returnValue = "Please don't leave the page while on a call";
   }
 
   function logout() {
-    console.log('loggin out');
+    console.log('logging out');
     $.post(baseUrl + '/login/logout/', function(response) {
       console.log(response);
-      agentPresencesRef.update({
-        [currentAgentId]: 'Offline',
-      });
-      window.location.assign('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/login/');
+      setPresenceOffline(currentAgentId);
+      window.location.assign(baseUrl + '/login/');
     });
   }
 
-  $logoutButton.on('click', logout);
+  function setPresenceOffline(currentAgentId) {
+    agentPresencesRef.update({
+      [currentAgentId]: 'Offline',
+    });
+  }
 
-
-
-
-
-//
-// function deleteCookie() {
-//   $.get('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/login/logout/', function(response) {
-//     console.log('Signed Out');
-//     location.reload(true);
-//   });
-// }
-
-  agentPresencesRef.once('value', (snapshot) => {
-    let presences = snapshot.val();
-    addTransferAndDialInButtons(presences);
-    attachOnClickHandlers();
-    updatePresenceColors(presences);
-  });
-  agentPresencesRef.on('value', (snapshot) => {
-    let presences = snapshot.val();
-    console.log(presences);
-    updatePresenceColors(presences);
-  });
-
-  // $logoutButton.on('load', function(e) {
-  //   console.log('skdhsajkhdjashdjkahkjdhajksdhj1234');
-  // });
-
-  $statusSelector.on('change', function(e) {
+  function handleStatusSelectorChange(e) {
     let value = e.target.value;
     agentPresencesRef.update({
       [currentAgentId]: value,
     });
-  });
+  }
 
-  $(window).on('unload', function() {
-    agentPresencesRef.update({
-      [currentAgentId]: 'Offline',
-    });
-  })
-  // $offButton.prop('disabled', true);
-  // $onButton.on('click', () => {
-  //   $onButton.prop('disabled', true);
-  //   $offButton.prop('disabled', false);
-  //   //$.post(baseUrl + '/presence/', {agentId: currentAgentId, presenceStatus: true});
-  //   agentPresencesRef.update({
-  //     [currentAgentId]: true,
-  //   });
-  // });
-  // $offButton.on('click', () => {
-  //   $onButton.prop('disabled', false);
-  //   $offButton.prop('disabled', true);
-  //   //$.post(baseUrl + '/presence/', {agentId: currentAgentId, presenceStatus: false});
-  //   agentPresencesRef.update({
-  //     [currentAgentId]: false,
-  //   });
-  // });
-
-
-  function addTransferAndDialInButtons(presences) {
-
-    $transferFlexParent = $('#transfer-cnt .flex-parent');
-    $dialInFlexParent = $('#dial-in-cnt .flex-parent');
-
-    for (let agentId in presences) {
-      if (agentId != currentAgentId) {
-        let $newTransferBtn = $('<div />').addClass('transfer-btn btn btn-lg btn-primary').data('agent-id', agentId);
-        $transferFlexParent.append($newTransferBtn);
-
-        $newTransferPresenceCircle = $('<div />').addClass('presence-circle');
-        $newTransferBtn.append($newTransferPresenceCircle);
-
-        $newTransferName = $('<div />').addClass('btn-name').text(agentId);
-        $newTransferBtn.append($newTransferName);
-
-
-
-        let $newDialInBtn = $('<div />').addClass('dial-in-btn btn btn-lg btn-primary').data('agent-id', agentId);
-        $dialInFlexParent.append($newDialInBtn);
-
-        $newDialPresenceCircle = $('<div />').addClass('presence-circle');
-        $newDialInBtn.prepend($newDialPresenceCircle);
-
-        $newDialName = $('<div />').addClass('btn-name').text(agentId);
-        $newDialInBtn.append($newDialName);
-      }
+  function createUrl(base, paths, params) {
+    let url = base;
+    for (let path of paths) {
+      url += `/${path}`;
     }
+    url += '?';
+    for (let key in params) {
+      url += `${key}=${params[key]}&`;
+    }
+    return url;
+  }
+
+  function handleSpeakerSelectorChange(e) {
+    let deviceId = e.target.value;
+    console.log(deviceId);
+    Twilio.Device.audio.speakerDevices.set(deviceId);
+  }
+
+  function handleRingtoneSelectorChange(e) {
+    let deviceId = e.target.value;
+    console.log(deviceId);
+    Twilio.Device.audio.ringtoneDevices.set(deviceId);
   }
 
 
-  function attachOnClickHandlers() {
-    let $transferButtons = $('.transfer-btn');
-    if ($transferButtons) {
-      $transferButtons.each((index, transferButton) => {
-        let $transferButton = $(transferButton);
-        $transferButton.on('click', { agentId: $transferButton.data('agent-id') }, transferAgent);
-      });
+  function setupSpeakerOptions() {
+    let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
+
+    if (availableAudioDevices.length == 0) {
+      $ringtoneSelector.AddClass('hidden');
+      $speakerSelector.AddClass('hidden');
     }
-    let $dialInButtons = $('.dial-in-btn');
-    if ($dialInButtons) {
-      $dialInButtons.each((index, dialInButton) => {
-        let $dialInButton = $(dialInButton);
-        $dialInButton.on('click', { agentId: $dialInButton.data('agent-id') }, dialAgent);
+    else {
+      $ringtoneSelector.removeClass('hidden');
+      $speakerSelector.removeClass('hidden');
+
+      let defaultDevice = availableAudioDevices.find((audioDevice) => {
+        return audioDevice.deviceId == 'default';
       });
+
+      for (let audioDevice of availableAudioDevices) {
+        if (audioDevice.deviceId == 'default' || !defaultDevice.label.includes(audioDevice.label)) {
+          let label = audioDevice.label.substr(0, audioDevice.label.indexOf(' ('));
+          let ringtoneOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
+          let speakerOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
+
+          $ringtoneSelector.append(ringtoneOption);
+          $speakerSelector.append(speakerOption);
+        }
+      }
     }
   }
 
@@ -760,71 +536,153 @@ $(function() {
     }
   }
 
-
-  $ringtoneSelector.on('change', (e) => {
-    let deviceId = e.target.value;
-    console.log(deviceId);
-    Twilio.Device.audio.ringtoneDevices.set(deviceId);
-    // console.log(Twilio.Device.audio.ringtoneDevices.get());
-  });
-
-  $speakerSelector.on('change', (e) => {
-    let deviceId = e.target.value;
-    console.log(deviceId);
-    Twilio.Device.audio.speakerDevices.set(deviceId);
-    // console.log(Twilio.Device.audio.ringtoneDevices.get());
-  });
-
-  // $('#test').on('click', function() {
-  //   Twilio.Device.audio.ringtoneDevices.test();
-  // });
-
-  function setupSpeakerOptions() {
-    $ringtoneSelector.removeClass('hidden');
-    $speakerSelector.removeClass('hidden');
-    let availableAudioDevices = Array.from(Twilio.Device.audio.availableOutputDevices.values());
-    console.log(availableAudioDevices);
-    if (availableAudioDevices.length == 0) {
-      // let testOption = $('<option/>').text('test').attr('value', 'test');
-      // $ringtoneSelector.append(testOption);
-      $ringtoneSelector.AddClass('hidden');
-      $speakerSelector.AddClass('hidden');
-    }
-    else {
-      // let testOption2 = $('<option/>').text('test2').attr('value', 'test2');
-      // $ringtoneSelector.append(testOption2);
-      let defaultDevice = availableAudioDevices.find((audioDevice) => {
-        return audioDevice.deviceId == 'default';
+  function attachOnClickHandlers() {
+    let $transferButtons = $('.transfer-btn');
+    if ($transferButtons) {
+      $transferButtons.each((index, transferButton) => {
+        let $transferButton = $(transferButton);
+        $transferButton.on('click', { agentId: $transferButton.data('agent-id') }, transferAgent);
       });
+    }
+    let $dialInButtons = $('.dial-in-btn');
+    if ($dialInButtons) {
+      $dialInButtons.each((index, dialInButton) => {
+        let $dialInButton = $(dialInButton);
+        $dialInButton.on('click', { agentId: $dialInButton.data('agent-id') }, dialAgent);
+      });
+    }
+  }
 
-      for (let audioDevice of availableAudioDevices) {
-        if (audioDevice.deviceId == 'default' || !defaultDevice.label.includes(audioDevice.label)) {
-          let label = audioDevice.label.substr(0, audioDevice.label.indexOf(' ('));
-          let ringtoneOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
-          let speakerOption = $('<option/>').text(label).attr('value', audioDevice.deviceId);
+  function addTransferAndDialInButtons(presences) {
+
+    $transferFlexParent = $('#transfer-cnt .flex-parent');
+    $dialInFlexParent = $('#dial-in-cnt .flex-parent');
+
+    for (let agentId in presences) {
+      if (agentId != currentAgentId) {
+        let $newTransferBtn = $('<div />').addClass('transfer-btn btn btn-lg btn-primary').data('agent-id', agentId);
+        $transferFlexParent.append($newTransferBtn);
+
+        $newTransferPresenceCircle = $('<div />').addClass('presence-circle');
+        $newTransferBtn.append($newTransferPresenceCircle);
+
+        $newTransferName = $('<div />').addClass('btn-name').text(agentId);
+        $newTransferBtn.append($newTransferName);
 
 
-          $ringtoneSelector.append(ringtoneOption);
-          $speakerSelector.append(speakerOption);
-        }
+
+        let $newDialInBtn = $('<div />').addClass('dial-in-btn btn btn-lg btn-primary').data('agent-id', agentId);
+        $dialInFlexParent.append($newDialInBtn);
+
+        $newDialPresenceCircle = $('<div />').addClass('presence-circle');
+        $newDialInBtn.prepend($newDialPresenceCircle);
+
+        $newDialName = $('<div />').addClass('btn-name').text(agentId);
+        $newDialInBtn.append($newDialName);
       }
     }
   }
 
+  function call() {
+    var rawToNumber = $dialInput.val();
+    var toNumber = '';
+    for (var i = 0; i < rawToNumber.length; i++) {
+      var char = rawToNumber[i];
+      if (!isNaN(parseInt(char))) {
+        toNumber += char;
+      }
+    }
 
-  function createUrl(base, paths, params) {
-    let url = base;
-    for (let path of paths) {
-      url += `/${path}`;
-    }
-    url += '?';
-    for (let key in params) {
-      url += `${key}=${params[key]}&`;
-    }
-    return url;
+    var body = {
+      toNumber: toNumber,
+      fromAgentId: currentAgentId
+    };
+    currentConnection = Twilio.Device.connect(body);
+
+    callerIdString = toNumber;
+    updateCallStatus("In Call: " + callerIdString);
+    $hangupCallButton.prop('disabled', false);
   }
 
+  function initPresences(snapshot) {
+    let presences = snapshot.val();
+    if (presences) {
+      addTransferAndDialInButtons(presences);
+      attachOnClickHandlers();
+      updatePresenceColors(presences);
+    }
+  }
 
+  function handlePresencesChange(snapshot) {
+    let presences = snapshot.val();
+    if (presences) {
+      updatePresenceColors(presences);
+    }
+  }
+
+  function handleAgentStatusChange(snapshot) {
+    console.log("in handleAgentStatusChange");
+
+    let statuses = snapshot.val();
+    console.log(statuses);
+
+    if (statuses && statuses[currentAgentId]) {
+      let myStatus = statuses[currentAgentId];
+
+      window.addEventListener("beforeunload", preventUnload);
+
+      $outboundCnt.addClass('hidden');
+
+      if (myStatus.currentParentSid) {
+        $transferCnt.removeClass('hidden');
+      }
+      else  {
+        $transferCnt.addClass('hidden');
+      }
+
+      if (myStatus.currentParentSid) {
+        $startConferenceButton.removeClass('hidden');
+      }
+      else  {
+        $startConferenceButton.addClass('hidden');
+      }
+
+      if (myStatus.currentParentSid) {
+        $holdButton.removeClass('hidden');
+      }
+      else {
+        $holdButton.addClass('hidden');
+      }
+
+      if (myStatus.holdSid) {
+        $offHoldButton.removeClass('hidden');
+        onHold = true;
+        updateCallStatus("On hold");
+      }
+      else  {
+        $offHoldButton.addClass('hidden');
+        onHold = false;
+      }
+
+      if (myStatus.conferenceName) {
+        $dialInCnt.removeClass('hidden');
+        updateCallStatus("In conference");
+      }
+      else  {
+        $dialInCnt.addClass('hidden');
+      }
+    }
+    else {
+      window.removeEventListener("beforeunload", preventUnload);
+      $outboundCnt.removeClass('hidden');
+      $transferCnt.addClass('hidden');
+      $dialInCnt.addClass('hidden');
+      $startConferenceButton.addClass('hidden');
+      $holdButton.addClass('hidden');
+      $offHoldButton.addClass('hidden');
+      callEndedHandler();
+    }
+  }
 
 
 
