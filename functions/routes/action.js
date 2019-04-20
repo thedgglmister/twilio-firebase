@@ -276,12 +276,16 @@ router.post('/transfer/statusCallback', function(req, res) {
   console.log('in transfer statusCallback');
   console.log('call to: ', req.body.To);
   console.log('call status: ', req.body.CallStatus);
+
   //console.log(req.body);
 
   let callStatus = req.body.CallStatus;
   let callTo = req.body.To.substring(req.body.To.indexOf(':') + 1);
   let parentSid = req.body.ParentCallSid;
   let childSid = req.body.CallSid;
+  let name = req.query.name;
+  let number = req.query.number;
+
 
   if (callStatus == 'in-progress') {
     modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid, 'Incoming')
@@ -291,7 +295,17 @@ router.post('/transfer/statusCallback', function(req, res) {
       .catch((e) => {
         console.log(e);
         res.sendStatus(500);
+      });
+  }
+  else if (callStatus == 'ringing') {
+    modelUpdater.updateIncomingCallerId(callTo, name, number)
+      .then(() => {
+        res.sendStatus(200);
       })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
   }
   else {
     modelUpdater.updateCurrentCallSids(callTo, null, null, null)

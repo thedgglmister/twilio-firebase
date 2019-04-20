@@ -5,6 +5,8 @@ var router = express.Router();
 var url = require('url');
 var agentIdGroups = require('../lib/agent-ids');
 var twimlGenerator = require('../lib/twiml-generator');
+var modelUpdater = require('../lib/model');
+var twilioCaller = require('../lib/twilio-caller');
 
 
 //returns the URL of the endpoint to hit when an initial incoming call concludes.
@@ -24,17 +26,54 @@ var huntActionUrl = function(req) {
 router.post('/', function(req, res) {
   console.log('in incoming');
   console.log('callSid: ', req.body.CallSid);
+  console.log('from: ', req.body.From);
 
-  var group0 = agentIdGroups[0];
+  let fromNumber = req.body.From;
+  let parentSid = req.body.CallSid;
+  let group0 = agentIdGroups[0];
   let actionUrl = huntActionUrl(req);
   let transferTwiml = twimlGenerator.transferTwiml({
     agentIds: group0,
     timeout: 10,
     action: actionUrl,
-  })
-
+  });
   res.type('text/xml');
-  res.send(transferTwiml);
+
+
+  twilioCaller.lookupCall(fromNumber)
+    .then(function(numberData) {
+      let name = numberData.callerName ? numberData.callerName.caller_name : 'Anonymous';
+      let number = numberData.nationalFormat;
+      // modelUpdater.updateCallerId(name, fromNumber)
+      //   .then(() => {
+          let transferTwiml = twimlGenerator.transferTwiml({
+            agentIds: group0,
+            timeout: 10,
+            action: actionUrl,
+            name: name,
+            number: number,
+          });
+          res.send(transferTwiml);
+        // })
+        // .catch((e) => {
+        //   console.log(e);
+        //   res.sendStatus(500);
+        // });
+    })
+    .catch(function(error) {
+      console.log(error);
+      let transferTwiml = twimlGenerator.transferTwiml({
+        agentIds: group0,
+        timeout: 10,
+        action: actionUrl,
+        name: 'Anonymous',
+        number: fromNumber,
+      });
+      res.send(transferTwiml);
+    });
+
+
+
 });
 
 module.exports = router;

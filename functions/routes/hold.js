@@ -8,7 +8,7 @@ var modelUpdater = require('../lib/model');
 var url = require('url');
 
 //returns the URL of the endpoint to hit when a call should be sent to the holdingQueue.
-var holdCallbackUrl = function(req, holdSid) {
+var holdCallbackUrl = function(req, holdSid, name, number) {
   var pathname = '/phone/hold/callback';
   return url.format({
     protocol: 'https',
@@ -17,6 +17,8 @@ var holdCallbackUrl = function(req, holdSid) {
     query: {
       agentId: req.query.agentId,
       holdSid: holdSid,
+      name: name,
+      number: number,
     }
   });
 };
@@ -35,7 +37,7 @@ var enqueueActionUrl = function(req) {
 };
 
 //returns the URL of the endpoint to hit when an a call should be transfered.
-var transferCallbackUrl = function(req) {
+var transferCallbackUrl = function(req, name, number) {
   var pathname = '/phone/transfer/callback';
   return url.format({
     protocol: 'https',
@@ -43,6 +45,8 @@ var transferCallbackUrl = function(req) {
     pathname: pathname,
     query: {
       toAgentId: req.query.agentId,
+      name: name,
+      number: number,
     },
   });
 };
@@ -59,9 +63,11 @@ router.post('/', function(req, res) {
     .then(function(doc) {
       console.log('123321');
       let callSid = doc.currentParentSid;
+      let name = doc.incomingCallName;
+      let number = doc.incomingCallNumber;
       // modelUpdater.updateHoldSid(agentId, callSid)
       //   .then(function() {
-          var callbackUrl = holdCallbackUrl(req, callSid);
+          var callbackUrl = holdCallbackUrl(req, callSid, name, number);
           twilioCaller.updateCall(callSid, callbackUrl)
             .then(function() {
               res.sendStatus(200);
@@ -83,7 +89,10 @@ router.post('/unhold', function(req, res) {
   modelUpdater.findAgentStatus(agentId)
     .then(function(doc) {
       let callSid = doc.holdSid;
-      var callbackUrl = transferCallbackUrl(req);
+      let name = doc.holdName;
+      let number = doc.holdNumber;
+
+      var callbackUrl = transferCallbackUrl(req, name, number);
       twilioCaller.updateCall(callSid, callbackUrl)
         .then(function() {
           res.sendStatus(200);
@@ -114,8 +123,11 @@ router.post('/callback', function(req, res) {
 
   let agentId = req.query.agentId;
   let holdSid = req.query.holdSid;
+  let name = req.query.name;
+  let number = req.query.number;
 
-  modelUpdater.updateHoldSid(agentId, holdSid)
+
+  modelUpdater.updateHoldSid(agentId, holdSid, name, number)
     .then(() => {
       let actionUrl = enqueueActionUrl(req);
       let enqueueTwiml = twimlGenerator.enqueueTwiml({

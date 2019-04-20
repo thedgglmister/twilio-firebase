@@ -5,7 +5,7 @@ var configs = require('./twilio-configs');
 
 var conferenceTwiml = function(options) {
   var voiceResponse = new VoiceResponse();
-  
+
   let dialParams = {};
   if (options.includeAction) {
     dialParams.action = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/' + (options.agentId ? options.agentId : '');
@@ -33,8 +33,8 @@ var transferTwiml = function(options) {
   for (let agentId of options.agentIds) {
 
     dial.client({
-      statusCallbackEvent:"answered completed",
-      statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/transfer/statusCallback',
+      statusCallbackEvent:"ringing answered completed",
+      statusCallback: encodeURI('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/transfer/statusCallback?name=' + options.name + '&number=' + options.number),
       statusCallbackMethod:"POST",
     }, agentId);
   }

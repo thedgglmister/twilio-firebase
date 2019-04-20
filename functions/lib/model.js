@@ -4,6 +4,9 @@ var { admin } = require('./admin');
 var agentStatusesRef = admin.database().ref().child('agentStatuses');
 var agentsRef = admin.database().ref().child('agents');
 var agentPresencesRef = admin.database().ref().child('agentPresences');
+var callerIdRef = admin.database().ref().child('callerId');
+
+
 
 
 var updateCurrentCallSids = function(agentId, parentSid, childSid, callDirection) {
@@ -21,6 +24,10 @@ var updateCurrentCallSids = function(agentId, parentSid, childSid, callDirection
             if (childSid !== undefined) {
               updates.currentChildSid = childSid;
             }
+            if (parentSid == null && childSid == null) {
+              updates.incomingCallName = null;
+              updates.incomingCallNumber = null;
+            }
             //console.log('updaetes: ', updates);
             return agentStatusRef.update(updates)
             // .catch((error) => {
@@ -32,7 +39,7 @@ var updateCurrentCallSids = function(agentId, parentSid, childSid, callDirection
           // });
 }
 
-var updateHoldSid = function(agentId, parentSid) {
+var updateHoldSid = function(agentId, parentSid, name, number) {
   console.log('in update hold sid');
 
   let agentStatusRef = agentStatusesRef.child(agentId);
@@ -40,7 +47,10 @@ var updateHoldSid = function(agentId, parentSid) {
   //         .then((snapshot) => {
   //           let doc = snapshot.val();
             let updates = {
-              holdSid: parentSid
+              holdSid: parentSid,
+              holdName: name,
+              holdNumber: number,
+            
             };
             return agentStatusRef.update(updates)
             // .catch((error) => {
@@ -81,6 +91,41 @@ var updateAgentConference = function(agentId, conferenceName) {
               callDirection: null,
             };
             return agentStatusRef.update(updates)
+            // .catch((error) => {
+            //   console.log(error);
+            // });
+          // })
+          // .catch((error) => {
+          //   console.log(error);
+          // });
+}
+
+var updateIncomingCallerId = function(agentId, name, number) {
+  console.log('in update incoming caller id');
+
+  let agentStatusRef = agentStatusesRef.child(agentId);
+  // return agentStatusRef.once('value')
+  //         .then((snapshot) => {
+  //           let doc = snapshot.val();
+            let updates = {
+              incomingCallName: name,
+              incomingCallNumber: number,
+            };
+            return agentStatusRef.update(updates)
+
+}
+
+var updateCallerId = function(name, number) {
+  console.log('in update caller id');
+
+  //let callerIdNumberRef = callerIdRef.child(number);
+  // return agentStatusRef.once('value')
+  //         .then((snapshot) => {
+  //           let doc = snapshot.val();
+            let updates = {
+              [number]: name,
+            };
+            return callerIdRef.update(updates)
             // .catch((error) => {
             //   console.log(error);
             // });
@@ -193,7 +238,6 @@ var updateAgentPresence = function(agentId, presenceStatus) {
     });
 }
 
-//findAgentConferenceStatus('lcampbell', 'parentSIDTest4').then((doc) => console.log(doc));
 
 module.exports.updateAgentStatus = updateAgentStatus;
 module.exports.findAgentStatus = findAgentStatus;
@@ -205,3 +249,5 @@ module.exports.updateCurrentCallSids = updateCurrentCallSids;
 module.exports.updateHoldSid = updateHoldSid;
 module.exports.updateAgentConference = updateAgentConference;
 module.exports.findConferenceStatusFromGroup = findConferenceStatusFromGroup;
+module.exports.updateCallerId = updateCallerId;
+module.exports.updateIncomingCallerId = updateIncomingCallerId;

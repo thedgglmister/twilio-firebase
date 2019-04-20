@@ -1,5 +1,5 @@
 var agentIdGroups = [
-  ['biremonger', 'lcampbell'],
+  ['biremonger'],
   ['lcampbell'],
   // ['bchain', 'dfreund', 'lcampbell', 'jmarty', 'cching', 'cgustafson', 'crodriguez', 'cstegall', 'jpaz', 'mcastillo', 'rkokas', 'skhurana', 'ywu'],
 ];

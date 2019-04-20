@@ -8,7 +8,7 @@ var modelUpdater = require('../lib/model');
 var url = require('url');
 
 
-var transferCallbackUrl = function(req) {
+var transferCallbackUrl = function(req, name, number) {
   var pathname = '/phone/transfer/callback';
   return url.format({
     protocol: 'https',
@@ -16,6 +16,8 @@ var transferCallbackUrl = function(req) {
     pathname: pathname,
     query: {
       toAgentId: req.query.toAgentId,
+      name: name,
+      number: number,
     },
   });
 };
@@ -43,7 +45,7 @@ router.post('/', function(req, res) {
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
       let callSid = doc.currentParentSid ? doc.currentParentSid : doc.holdSid;
-      var callbackUrl = transferCallbackUrl(req);
+      var callbackUrl = transferCallbackUrl(req, doc.incomingCallName, doc.incomingCallNumber);
       twilioCaller.updateCall(callSid, callbackUrl)
         .then(function() {
           res.sendStatus(200);
@@ -61,12 +63,17 @@ router.post('/callback', function(req, res) {
   console.log('toAgentId: ', req.query.toAgentId);
 
   let toAgentId = req.query.toAgentId;
+  let name = req.query.name;
+  let number = req.query.number;
+
 
   let actionUrl = transferActionUrl(req);
   let transferTwiml = twimlGenerator.transferTwiml({
     agentIds: [toAgentId],
     timeout: 10,
     action: actionUrl,
+    name: name,
+    number: number,
   });
 
   res.type('text/xml');

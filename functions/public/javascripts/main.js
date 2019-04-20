@@ -24,7 +24,7 @@ $(function() {
   };
 
   var currentConnection;
-  var callerIdString;
+  //var callerIdString;
   var onHold = false;
   var $callStatus = $('#call-status');
   var $connectAgent1Button = $("#connect-agent1-button");
@@ -62,6 +62,8 @@ $(function() {
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
   let agentStatusesRef = firebase.database().ref('agentStatuses');
+  let callerIdRef = firebase.database().ref('callerId');
+
 
   ///REAL need to uncomment out
     //fetchToken(currentAgentId);
@@ -111,45 +113,45 @@ $(function() {
 
 
 
-  function updateCallerIdString(fromNumber) {
-    console.log(fromNumber);
-    if (fromNumber.startsWith('client:')) {
-      callerIdString = fromNumber.slice(7);
-      // if (fromNumber.endsWith('conference')) {
-      //   callerIdString = callerIdString.slice(0, callerIdString.length - 10);
-      // }
-      updateCallStatus("Incoming call: " + callerIdString);
-    }
-    else {
-      let paths = ['callerid'];
-      let params = {
-        number: fromNumber,
-      };
-      let url = createUrl(baseUrl, paths, params);
-
-      $.post(url, function(numberData) {
-        console.log(JSON.stringify(numberData));
-        console.log(numberData);
-        console.log(numberData !== null);
-        if (numberData != null) {
-
-          console.log(numberData.nationalFormat);
-          console.log(numberData.callerName);
-
-          var nationalFormat = numberData.nationalFormat;
-          var callerName = numberData.callerName ? numberData.callerName.caller_name : 'Anonymous';
-          callerIdString = (callerName ? callerName + ' ' : '') + nationalFormat;
-          console.log(callerIdString);
-          updateCallStatus("Incoming call: " + callerIdString);
-        }
-        else {
-          callerIdString = fromNumber;
-          updateCallStatus("Incoming call: " + callerIdString);
-        }
-      });
-    }
-
-  }
+  // function updateCallerIdString(fromNumber) {
+  //   console.log(fromNumber);
+  //   if (fromNumber.startsWith('client:')) {
+  //     callerIdString = fromNumber.slice(7);
+  //     // if (fromNumber.endsWith('conference')) {
+  //     //   callerIdString = callerIdString.slice(0, callerIdString.length - 10);
+  //     // }
+  //     updateCallStatus("Incoming call: " + callerIdString);
+  //   }
+  //   else {
+  //     let paths = ['callerid'];
+  //     let params = {
+  //       number: fromNumber,
+  //     };
+  //     let url = createUrl(baseUrl, paths, params);
+  //
+  //     $.post(url, function(numberData) {
+  //       console.log(JSON.stringify(numberData));
+  //       console.log(numberData);
+  //       console.log(numberData !== null);
+  //       if (numberData != null) {
+  //
+  //         console.log(numberData.nationalFormat);
+  //         console.log(numberData.callerName);
+  //
+  //         var nationalFormat = numberData.nationalFormat;
+  //         var callerName = numberData.callerName ? numberData.callerName.caller_name : 'Anonymous';
+  //         callerIdString = (callerName ? callerName + ' ' : '') + nationalFormat;
+  //         console.log(callerIdString);
+  //         updateCallStatus("Incoming call: " + callerIdString);
+  //       }
+  //       else {
+  //         callerIdString = fromNumber;
+  //         updateCallStatus("Incoming call: " + callerIdString);
+  //       }
+  //     });
+  //   }
+  //
+  // }
 
 
 
@@ -174,6 +176,7 @@ $(function() {
   agentPresencesRef.once('value', initPresences);
   agentPresencesRef.on('value', handlePresencesChange);
   agentStatusesRef.on('value', handleAgentStatusChange);
+  callerIdRef.on('value', updateCallerId);
 
 
 
@@ -292,7 +295,7 @@ $(function() {
 
   function handleAcceptCall() {
     console.log("in handleAcceptCall");
-    updateCallStatus("In call: " + callerIdString);
+    //updateCallStatus("In call: " + callerIdString);
     $answerCallButton.prop('disabled', true);
   }
 
@@ -330,13 +333,13 @@ $(function() {
     currentConnection = connection;
     $hangupCallButton.prop('disabled', false);
     $answerCallButton.prop('disabled', false);
-    updateCallerIdString(connection.parameters.From);
+    //updateCallerIdString(connection.parameters.From);
     window.addEventListener("beforeunload", preventUnload);
     connection.accept(handleAcceptCall);
     connection.error(handleConnectionError);
   }
 
-  function handleDeviceError() {
+  function handleDeviceError(error) {
     console.log("error: " + error.message);
     updateCallStatus("ERROR: " + error.message);
     window.removeEventListener("beforeunload", preventUnload);
@@ -397,7 +400,9 @@ $(function() {
       agentId: currentAgentId,
     }
     let url = createUrl(baseUrl, paths, params);
-    $.post(url);
+    $.post(url, function() {
+      onHold = true;
+    });
   }
 
   function takeCallOffHold() {
@@ -406,7 +411,9 @@ $(function() {
       agentId: currentAgentId,
     }
     let url = createUrl(baseUrl, paths, params);
-    $.post(url);
+    $.post(url, function() {
+      onHold = false;
+    });
   }
 
   function updateCallStatus(status) {
@@ -599,8 +606,8 @@ $(function() {
     };
     currentConnection = Twilio.Device.connect(body);
 
-    callerIdString = toNumber;
-    updateCallStatus("In Call: " + callerIdString);
+    //callerIdString = toNumber;
+    //updateCallStatus("In Call: " + callerIdString);
     $hangupCallButton.prop('disabled', false);
   }
 
@@ -632,6 +639,13 @@ $(function() {
       window.addEventListener("beforeunload", preventUnload);
 
       $outboundCnt.addClass('hidden');
+
+      if (!myStatus.currentParentSid && myStatus.incomingCallName) {
+        updateCallStatus("Incoming call: " + myStatus.incomingCallName + " " + myStatus.incomingCallNumber);
+      }
+      else if (myStatus.currentParentSid && myStatus.incomingCallName) {
+        updateCallStatus("In call: " + myStatus.incomingCallName + " " + myStatus.incomingCallNumber);
+      }
 
       if (myStatus.currentParentSid) {
         $transferCnt.removeClass('hidden');
@@ -682,6 +696,10 @@ $(function() {
       $offHoldButton.addClass('hidden');
       callEndedHandler();
     }
+  }
+
+  function updateCallerId(snapshot) {
+    callerIds = snapshot.val();
   }
 
 
