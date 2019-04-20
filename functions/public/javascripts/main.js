@@ -671,7 +671,7 @@ $(function() {
       if (myStatus.holdSid) {
         $offHoldButton.removeClass('hidden');
         onHold = true;
-        updateCallStatus("On hold");
+        updateCallStatus(myStatus.holdName + " " + myStatus.holdNumber + " is on hold");
       }
       else  {
         $offHoldButton.addClass('hidden');

@@ -251,7 +251,7 @@ router.post('/enqueue', function(req, res) {
 
   let agentId = req.query.agentId;
 
-  modelUpdater.updateHoldSid(agentId, null)
+  modelUpdater.updateHoldSid(agentId, null, null, null)
     .then(function() {
       res.sendStatus(200);
     })

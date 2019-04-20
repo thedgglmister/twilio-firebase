@@ -30,8 +30,6 @@ router.post('/', function(req, res) {
 
   var toNumber = req.body.toNumber;
   var fromAgentId = req.body.fromAgentId;
-  //var parentSid = req.body.CallSid;
-
   let actionUrl = outgoingActionUrl(req, fromAgentId);
 
   let dialNumberTwiml = twimlGenerator.dialNumberTwiml({
