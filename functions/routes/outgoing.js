@@ -3,7 +3,7 @@
 var express = require('express');
 var router = express.Router();
 var twimlGenerator = require('../lib/twiml-generator');
-// var twilioCaller = require('../lib/twilio-caller');
+var twilioCaller = require('../lib/twilio-caller');
 // var modelUpdater = require('../lib/model');
 // var configs = require('../lib/twilio-configs');
 // var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
@@ -31,15 +31,32 @@ router.post('/', function(req, res) {
   var toNumber = req.body.toNumber;
   var fromAgentId = req.body.fromAgentId;
   let actionUrl = outgoingActionUrl(req, fromAgentId);
-
-  let dialNumberTwiml = twimlGenerator.dialNumberTwiml({
-    fromAgentId: fromAgentId,
-    toNumber: toNumber,
-    action: actionUrl,
-  });
-
   res.type('text/xml');
-  res.send(dialNumberTwiml);
+
+  twilioCaller.lookupCall(toNumber)
+    .then(function(numberData) {
+      let name = numberData.callerName ? numberData.callerName.caller_name : 'Anonymous';
+      let number = numberData.nationalFormat;
+      let dialNumberTwiml = twimlGenerator.dialNumberTwiml({
+        fromAgentId: fromAgentId,
+        toNumber: toNumber,
+        action: actionUrl,
+        name: name,
+        number: number,
+      });
+      res.send(dialNumberTwiml);
+    })
+    .catch(function(error) {
+      console.log(error);
+      let dialNumberTwiml = twimlGenerator.dialNumberTwiml({
+        fromAgentId: fromAgentId,
+        toNumber: toNumber,
+        action: actionUrl,
+        name: 'Anonymous',
+        number: toNumber,
+      });
+      res.send(dialNumberTwiml);
+    });
 });
 
 

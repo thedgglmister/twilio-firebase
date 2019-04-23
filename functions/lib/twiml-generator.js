@@ -6,7 +6,9 @@ var configs = require('./twilio-configs');
 var conferenceTwiml = function(options) {
   var voiceResponse = new VoiceResponse();
 
-  let dialParams = {};
+  let dialParams = {
+    timeout: 15
+  };
   if (options.includeAction) {
     dialParams.action = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/' + (options.agentId ? options.agentId : '');
   }
@@ -14,9 +16,10 @@ var conferenceTwiml = function(options) {
       startConferenceOnEnter: options.startConferenceOnEnter,
       endConferenceOnExit: options.endConferenceOnExit,
       waitUrl: options.waitUrl,
-      //statusCallbackEvent:"leave",
-      //statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/statusCallback',
-      //statusCallbackMethod:"POST",
+      statusCallbackEvent:"start end join leave ringing completed",
+      statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/statusCallback',
+      statusCallbackMethod:"POST",
+      timeout: 15,
     }, options.conferenceName);
 
   return voiceResponse.toString();
@@ -50,8 +53,8 @@ var dialNumberTwiml = function(options){
     action: options.action,
   });
   dial.number({
-    statusCallbackEvent: 'answered completed',
-    statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/outgoing/statusCallback/${options.fromAgentId}`,
+    statusCallbackEvent: 'ringing answered completed',
+    statusCallback: encodeURI(`https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/outgoing/statusCallback/${options.fromAgentId}?name=` + options.name + '&number=' + options.number),
   }, options.toNumber);
   return voiceResponse.toString();
 };

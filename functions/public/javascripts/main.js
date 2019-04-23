@@ -62,7 +62,7 @@ $(function() {
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
   let agentStatusesRef = firebase.database().ref('agentStatuses');
-  let callerIdRef = firebase.database().ref('callerId');
+  //let callerIdRef = firebase.database().ref('callerId');
 
 
   ///REAL need to uncomment out
@@ -176,7 +176,7 @@ $(function() {
   agentPresencesRef.once('value', initPresences);
   agentPresencesRef.on('value', handlePresencesChange);
   agentStatusesRef.on('value', handleAgentStatusChange);
-  callerIdRef.on('value', updateCallerId);
+  //callerIdRef.on('value', updateCallerId);
 
 
 
@@ -296,7 +296,7 @@ $(function() {
   function handleAcceptCall() {
     console.log("in handleAcceptCall");
     //updateCallStatus("In call: " + callerIdString);
-    $answerCallButton.prop('disabled', true);
+    //$answerCallButton.prop('disabled', true);
   }
 
   function handleConnectionError(error) {
@@ -325,14 +325,16 @@ $(function() {
   }
 
   function handleDeviceIncoming(connection) {
+    console.log(111);
     if (onHold) {
       connection.ignore();
       return;
     }
+    console.log(222);
 
     currentConnection = connection;
-    $hangupCallButton.prop('disabled', false);
-    $answerCallButton.prop('disabled', false);
+    // $hangupCallButton.prop('disabled', false);
+    //$answerCallButton.prop('disabled', false);
     //updateCallerIdString(connection.parameters.From);
     window.addEventListener("beforeunload", preventUnload);
     connection.accept(handleAcceptCall);
@@ -354,7 +356,9 @@ $(function() {
     $hangupCallButton.prop('disabled', true);
     $answerCallButton.prop('disabled', true);
     currentConnection = null;
-    updateCallStatus("Connected as: " + currentAgentId);
+    if (!onHold) {
+      updateCallStatus("Connected as: " + currentAgentId);
+    }
   }
 
   function handleDeviceOffline() {
@@ -608,7 +612,7 @@ $(function() {
 
     //callerIdString = toNumber;
     //updateCallStatus("In Call: " + callerIdString);
-    $hangupCallButton.prop('disabled', false);
+    //$hangupCallButton.prop('disabled', false);
   }
 
   function initPresences(snapshot) {
@@ -640,15 +644,22 @@ $(function() {
 
       $outboundCnt.addClass('hidden');
 
-      if (!myStatus.currentParentSid && myStatus.incomingCallName) {
-        updateCallStatus("Incoming call: " + myStatus.incomingCallName + " " + myStatus.incomingCallNumber);
+      if (myStatus.currentCallName) {
+        updateCallStatus("In call: " + myStatus.currentCallName + " " + myStatus.currentCallNumber);
       }
-      else if (myStatus.currentParentSid && myStatus.incomingCallName) {
-        updateCallStatus("In call: " + myStatus.incomingCallName + " " + myStatus.incomingCallNumber);
+      else if (myStatus.incomingCallName) {
+        updateCallStatus("Incoming call: " + myStatus.incomingCallName + " " + myStatus.incomingCallNumber);
+        $hangupCallButton.prop('disabled', false);
+        $answerCallButton.prop('disabled', false);
+      }
+      else if (myStatus.outgoingCallName) {
+        updateCallStatus("Outgoing call: " + myStatus.outgoingCallName + " " + myStatus.outgoingCallNumber);
+        $hangupCallButton.prop('disabled', false);
       }
 
       if (myStatus.currentParentSid) {
         $transferCnt.removeClass('hidden');
+        $answerCallButton.prop('disabled', true);
       }
       else  {
         $transferCnt.addClass('hidden');
@@ -668,7 +679,11 @@ $(function() {
         $holdButton.addClass('hidden');
       }
 
+      console.log('myStatus');
+      console.log(myStatus);
+
       if (myStatus.holdSid) {
+        console.log(123);
         $offHoldButton.removeClass('hidden');
         onHold = true;
         updateCallStatus(myStatus.holdName + " " + myStatus.holdNumber + " is on hold");
@@ -698,9 +713,9 @@ $(function() {
     }
   }
 
-  function updateCallerId(snapshot) {
-    callerIds = snapshot.val();
-  }
+  // function updateCallerId(snapshot) {
+  //   callerIds = snapshot.val();
+  // }
 
 
 

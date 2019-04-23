@@ -45,7 +45,10 @@ router.post('/', function(req, res) {
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
       let callSid = doc.currentParentSid ? doc.currentParentSid : doc.holdSid;
-      var callbackUrl = transferCallbackUrl(req, doc.incomingCallName, doc.incomingCallNumber);
+      let name = doc.currentCallName ? doc.currentCallName : doc.holdName;
+      let number = doc.currentCallNumber ? doc.currentCallNumber : doc.holdNumber;
+
+      var callbackUrl = transferCallbackUrl(req, name, number);
       twilioCaller.updateCall(callSid, callbackUrl)
         .then(function() {
           res.sendStatus(200);

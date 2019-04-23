@@ -63,8 +63,8 @@ router.post('/', function(req, res) {
     .then(function(doc) {
       console.log('123321');
       let callSid = doc.currentParentSid;
-      let name = doc.incomingCallName;
-      let number = doc.incomingCallNumber;
+      let name = doc.currentCallName;
+      let number = doc.currentCallNumber;
       // modelUpdater.updateHoldSid(agentId, callSid)
       //   .then(function() {
           var callbackUrl = holdCallbackUrl(req, callSid, name, number);

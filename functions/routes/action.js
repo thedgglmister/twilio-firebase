@@ -51,7 +51,7 @@ var conferenceCallbackAgentUrl = function(req, conferenceName, agentId, includeA
   });
 };
 
-var huntActionUrl = function(req) {
+var huntActionUrl = function(req, name, number) {
   var pathname = '/phone/action/hunt';
   return url.format({
     protocol: 'https',
@@ -59,6 +59,8 @@ var huntActionUrl = function(req) {
     pathname: pathname,
     query: {
       agentIdGroupIndex: parseInt(req.query.agentIdGroupIndex) + 1,
+      name: name,
+      number: number,
     },
   });
 }
@@ -86,6 +88,8 @@ router.post('/hunt', function(req, res) {
   var agentIdGroupIndex = parseInt(req.query.agentIdGroupIndex);
   var dialCallStatus = req.body.DialCallStatus;
   var parentSid = req.body.CallSid;
+  var name = req.query.name;
+  var number = req.query.number;
   console.log('$$$$$$');
   console.log(req.body);
 
@@ -101,17 +105,19 @@ router.post('/hunt', function(req, res) {
     }
     else {
       let nextGroup = agentIdGroups[agentIdGroupIndex + 1]
-      modelUpdater.updateAgentStatus(nextGroup, parentSid, false)
-        .then(function() {
-          let actionUrl = huntActionUrl(req);
+      //modelUpdater.updateAgentStatus(nextGroup, parentSid, false)
+        //.then(function() {
+          let actionUrl = huntActionUrl(req, name, number);
           let transferTwiml = twimlGenerator.transferTwiml({
             agentIds: nextGroup,
             timeout: 10,
             action: actionUrl,
+            name: name,
+            number: number,
           });
           res.type('text/xml');
           res.send(transferTwiml);
-        });
+        // });
     }
   }
   else {
@@ -222,7 +228,7 @@ router.post('/outgoing', function(req, res) {
           });
       }
       else if (dialCallStatus == 'completed') {
-        modelUpdater.updateCurrentCallSids(fromAgentId, null, null, null)
+        modelUpdater.updateCurrentCallSids(fromAgentId, null, null, null, null, null)
           .then(function() {
             res.sendStatus(200);
           })
@@ -265,7 +271,11 @@ router.post('/enqueue', function(req, res) {
 
 
 
-
+router.post('/conference/statusCallback', function(req, res) {
+  console.log('in conference statusCallback');
+  console.log('call status: ', req.body.CallStatus);
+  console.log(req.body);
+});
 
 
 
@@ -288,7 +298,7 @@ router.post('/transfer/statusCallback', function(req, res) {
 
 
   if (callStatus == 'in-progress') {
-    modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid, 'Incoming')
+    modelUpdater.updateCurrentCallSids(callTo, parentSid, childSid, name, number, "Incoming")
       .then(() => {
         res.sendStatus(200);
       })
@@ -307,8 +317,18 @@ router.post('/transfer/statusCallback', function(req, res) {
         res.sendStatus(500);
       });
   }
+  else if (callStatus == 'no-answer') {
+    modelUpdater.updateIncomingCallerId(callTo, null, null)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  }
   else {
-    modelUpdater.updateCurrentCallSids(callTo, null, null, null)
+    modelUpdater.updateCurrentCallSids(callTo, null, null, null, null, null)
       .then(() => {
         res.sendStatus(200);
       })
@@ -328,9 +348,11 @@ router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
   let childSid = req.body.CallSid;
   let parentSid = req.body.ParentCallSid;
   let callStatus = req.body.CallStatus;
+  let name = req.query.name;
+  let number = req.query.number;
 
   if (callStatus == 'in-progress') {
-    modelUpdater.updateCurrentCallSids(fromAgentId, childSid, parentSid, 'Outgoing')
+    modelUpdater.updateCurrentCallSids(fromAgentId, childSid, parentSid, name, number, "Outgoing")
     .then(function() {
       res.sendStatus(200);
     })
@@ -338,6 +360,16 @@ router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
       console.log(e);
       res.sendStatus(500);
     })
+  }
+  else if (callStatus == 'ringing') {
+    modelUpdater.updateOutgoingCallerId(fromAgentId, name, number)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
   }
   // else {
   //   modelUpdater.updateCurrentCallSids(fromAgentId, null, null)

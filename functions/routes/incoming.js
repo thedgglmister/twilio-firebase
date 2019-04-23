@@ -10,7 +10,7 @@ var twilioCaller = require('../lib/twilio-caller');
 
 
 //returns the URL of the endpoint to hit when an initial incoming call concludes.
-var huntActionUrl = function(req) {
+var huntActionUrl = function(req, name, number) {
   var pathname = '/phone/action/hunt';
   return url.format({
     protocol: 'https',
@@ -18,6 +18,8 @@ var huntActionUrl = function(req) {
     pathname: pathname,
     query: {
       agentIdGroupIndex: 0,
+      name: name,
+      number: number,
     },
   });
 }
@@ -31,12 +33,6 @@ router.post('/', function(req, res) {
   let fromNumber = req.body.From;
   let parentSid = req.body.CallSid;
   let group0 = agentIdGroups[0];
-  let actionUrl = huntActionUrl(req);
-  let transferTwiml = twimlGenerator.transferTwiml({
-    agentIds: group0,
-    timeout: 10,
-    action: actionUrl,
-  });
   res.type('text/xml');
 
 
@@ -46,6 +42,7 @@ router.post('/', function(req, res) {
       let number = numberData.nationalFormat;
       // modelUpdater.updateCallerId(name, fromNumber)
       //   .then(() => {
+          let actionUrl = huntActionUrl(req, name, number);
           let transferTwiml = twimlGenerator.transferTwiml({
             agentIds: group0,
             timeout: 10,
@@ -62,6 +59,7 @@ router.post('/', function(req, res) {
     })
     .catch(function(error) {
       console.log(error);
+      let actionUrl = huntActionUrl(req, 'Anonymous', fromNumber);
       let transferTwiml = twimlGenerator.transferTwiml({
         agentIds: group0,
         timeout: 10,
