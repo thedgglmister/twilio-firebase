@@ -6,9 +6,7 @@ var configs = require('./twilio-configs');
 var conferenceTwiml = function(options) {
   var voiceResponse = new VoiceResponse();
 
-  let dialParams = {
-    timeout: 15
-  };
+  let dialParams = {};
   if (options.includeAction) {
     dialParams.action = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/' + (options.agentId ? options.agentId : '');
   }
@@ -16,10 +14,10 @@ var conferenceTwiml = function(options) {
       startConferenceOnEnter: options.startConferenceOnEnter,
       endConferenceOnExit: options.endConferenceOnExit,
       waitUrl: options.waitUrl,
-      statusCallbackEvent:"start end join leave ringing completed",
-      statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/statusCallback',
-      statusCallbackMethod:"POST",
-      timeout: 15,
+      // statusCallbackEvent:"start end join leave",
+      // statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/statusCallback',
+      // statusCallbackMethod:"POST",
+      // timeout: 15,
     }, options.conferenceName);
 
   return voiceResponse.toString();

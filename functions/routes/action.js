@@ -270,15 +270,59 @@ router.post('/enqueue', function(req, res) {
 
 
 
+router.post('/invite/statusCallback', function(req, res) {
+  console.log('in invite statusCallback');
 
-router.post('/conference/statusCallback', function(req, res) {
-  console.log('in conference statusCallback');
-  console.log('call status: ', req.body.CallStatus);
   console.log(req.body);
+
+  let callStatus = req.body.CallStatus;
+  let inviterAgentId = req.body.Caller.substring(req.body.Caller.indexOf(':') + 1);
+  let inviteeAgentId = req.body.Called.substring(req.body.Called.indexOf(':') + 1);
+  let conferenceName = req.query.conferenceName;
+
+
+
+  if (callStatus == 'in-progress') {
+    modelUpdater.updateAgentConference(inviteeAgentId, conferenceName)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  }
+  else if (callStatus == 'ringing') {
+    modelUpdater.updateIncomingCallerId(inviteeAgentId, inviterAgentId, null)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  }
+  else if (callStatus == 'no-answer') {
+    modelUpdater.updateIncomingCallerId(inviteeAgentId, null, null)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  }
+  else {
+    modelUpdater.updateAgentConference(inviteeAgentId, null)
+      .then(() => {
+        res.sendStatus(200);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.sendStatus(500);
+      });
+  }
 });
-
-
-
 
 
 

@@ -152,15 +152,31 @@ router.post('/invite', function(req, res) {
 
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
+      console.log(555);
       let conferenceName = doc.conferenceName;
+      console.log(conferenceName);
+
       // modelUpdater.updateConferenceName(toAgentId, conferenceName);
       var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toAgentId, true);
-      twilioCaller.call(fromAgentId, toAgentId, callbackUrl)
+      console.log(666);
+
+      // twilioCaller.call(fromAgentId, toAgentId, callbackUrl)
+      //   .then(function() {
+      //     res.sendStatus(200);
+      //   });
+      twilioCaller.inviteParticipant(fromAgentId, toAgentId, conferenceName)
         .then(function() {
+          console.log(777);
           res.sendStatus(200);
+        })
+        .catch(function(e) {
+          console.log(999);
+          console.log(e);
+          res.sendStatus(500);
         });
     })
     .catch((e) => {
+      console.log(888);
       console.log(e);
       res.sendStatus(500);
     })

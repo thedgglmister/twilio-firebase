@@ -76,10 +76,7 @@ var findAgentStatus = function(agentId) {
   //console.log(agentStatusRef);
 
   return agentStatusRef.once('value').then((snapshot) => {
-    //console.log(snapshot);
-    console.log(123);
     console.log(snapshot.val());
-    console.log(456);
     return snapshot.val() ? snapshot.val() : {};
   });
 }
@@ -94,8 +91,15 @@ var updateAgentConference = function(agentId, conferenceName) {
               conferenceName: conferenceName,
               currentParentSid: null,
               currentChildSid: null,
+              currentCallName: null,
+              currentCallNumber: null,
               callDirection: null,
+              incomingCallName: null,
+              incomingCallNumber: null,
             };
+            if (conferenceName == null) {
+              updates.conferenceSid = null;
+            }
             return agentStatusRef.update(updates)
             // .catch((error) => {
             //   console.log(error);

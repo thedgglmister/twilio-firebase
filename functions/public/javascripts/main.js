@@ -368,6 +368,9 @@ $(function() {
   }
 
   function dialAgent(e) {
+
+    console.log('dialing agent', currentAgentId, e.data.agentId);
+    
     let paths = ['conference', 'invite'];
     let params = {
       fromAgentId: currentAgentId,
@@ -648,7 +651,7 @@ $(function() {
         updateCallStatus("In call: " + myStatus.currentCallName + " " + myStatus.currentCallNumber);
       }
       else if (myStatus.incomingCallName) {
-        updateCallStatus("Incoming call: " + myStatus.incomingCallName + " " + myStatus.incomingCallNumber);
+        updateCallStatus("Incoming call: " + myStatus.incomingCallName + (myStatus.incomingCallNumber ? " " + myStatus.incomingCallNumber : ""));
         $hangupCallButton.prop('disabled', false);
         $answerCallButton.prop('disabled', false);
       }
@@ -696,6 +699,7 @@ $(function() {
       if (myStatus.conferenceName) {
         $dialInCnt.removeClass('hidden');
         updateCallStatus("In conference");
+        $answerCallButton.prop('disabled', true);
       }
       else  {
         $dialInCnt.addClass('hidden');
