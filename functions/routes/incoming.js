@@ -33,6 +33,7 @@ router.post('/', function(req, res) {
   let fromNumber = req.body.From;
   let parentSid = req.body.CallSid;
   let group0 = agentIdGroups[0];
+  let isSipGroup = group0[0].startsWith('sip:');
   res.type('text/xml');
 
 
@@ -43,13 +44,20 @@ router.post('/', function(req, res) {
       // modelUpdater.updateCallerId(name, fromNumber)
       //   .then(() => {
           let actionUrl = huntActionUrl(req, name, number);
-          let transferTwiml = twimlGenerator.transferTwiml({
+          let options = {
             agentIds: group0,
             timeout: 10,
             action: actionUrl,
             name: name,
             number: number,
-          });
+          };
+          let transferTwiml;
+          if (isSipGroup) {
+            transferTwiml = twimlGenerator.sipTransferTwiml(options);
+          }
+          else {
+            transferTwiml = twimlGenerator.transferTwiml(options);
+          }
           res.send(transferTwiml);
         // })
         // .catch((e) => {
@@ -58,6 +66,7 @@ router.post('/', function(req, res) {
         // });
     })
     .catch(function(error) {
+      console.log('in catch');
       console.log(error);
       let actionUrl = huntActionUrl(req, 'Anonymous', fromNumber);
       let transferTwiml = twimlGenerator.transferTwiml({

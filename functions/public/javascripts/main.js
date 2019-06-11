@@ -14,7 +14,9 @@ need to use this to tell if ive just been dialed into a conference, so i can dis
 $(function() {
 
   console.log("in main.js");
-  console.log(currentAgentId);
+  console.log('currentAgentId', currentAgentId);
+  console.log('origAgentId', origAgentId);
+
 
   var agentIds = { //temp
     agent1: 'mkaufman',
@@ -47,6 +49,7 @@ $(function() {
   var $ringtoneSelector = $("#ringtone-selector");
   var $speakerSelector = $("#speaker-selector");
   var $window = $(window);
+  var sipMap = {};
 
   var baseUrl = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone';
 
@@ -62,11 +65,13 @@ $(function() {
   firebase.initializeApp(config);
   let agentPresencesRef = firebase.database().ref('agentPresences');
   let agentStatusesRef = firebase.database().ref('agentStatuses');
+  let sipMapRef = firebase.database().ref('sipMap');
+
   //let callerIdRef = firebase.database().ref('callerId');
 
 
   ///REAL need to uncomment out
-    //fetchToken(currentAgentId);
+    //fetchToken(origAgentId);
   ////
 
   $connectAgent1Button.on('click', { agentId: agentIds.agent1 }, agentClickHandler);
@@ -81,7 +86,7 @@ $(function() {
   $callButton.on('click', call);
   $logoutButton.on('click', logout);
   $window.on('keydown', sendDigits);
-  $window.on('unload', setPresenceOffline);
+  $window.on('beforeunload', setPresenceOffline);
   $statusSelector.on('change', handleStatusSelectorChange);
   $speakerSelector.on('change', handleSpeakerSelectorChange);
   $ringtoneSelector.on('change', handleRingtoneSelectorChange);
@@ -176,6 +181,8 @@ $(function() {
   agentPresencesRef.once('value', initPresences);
   agentPresencesRef.on('value', handlePresencesChange);
   agentStatusesRef.on('value', handleAgentStatusChange);
+  sipMapRef.on('value', handleSipMapChange);
+
   //callerIdRef.on('value', updateCallerId);
 
 
@@ -232,12 +239,21 @@ $(function() {
 
     let onSuccess = function(data) {
       console.log('token callback');
-      currentAgentId = agentId;
+      origAgentId = agentId;
+      currentAgentId = sipMap[agentId] ? sipMap[agentId] : agentId;
       connectClient(data.token);
       agentPresencesRef.update({
-        [currentAgentId]: $statusSelector.val(),
+        [origAgentId]: $statusSelector.val(),
       });
       agentStatusesRef.once('value', handleAgentStatusChange);
+
+      if (currentAgentId.startsWith('sip:')) {
+        $answerCallButton.prop('disabled', true);
+        $hangupCallButton.prop('disabled', true);
+        $outboundCnt.addClass('hidden');
+        $ringtoneSelector.addClass('hidden');
+        $speakerSelector.addClass('hidden');
+      }
     }
 
     $.ajax({
@@ -318,7 +334,7 @@ $(function() {
 
   function handleDeviceReady(device) {
     updateCallStatus("Ready");
-    agentConnectedHandler(currentAgentId);
+    agentConnectedHandler(origAgentId);
     setupSpeakerOptions();
     Twilio.Device.audio.on('deviceChange', handleDeviceChange);
     Twilio.Device.audio.outgoing(false);
@@ -357,20 +373,20 @@ $(function() {
     $answerCallButton.prop('disabled', true);
     currentConnection = null;
     if (!onHold) {
-      updateCallStatus("Connected as: " + currentAgentId);
+      updateCallStatus("Connected as: " + origAgentId);
     }
   }
 
   function handleDeviceOffline() {
     console.log("in handleDeviceOffline");
     callEndedHandler();
-    fetchToken(currentAgentId);
+    fetchToken(origAgentId);
   }
 
   function dialAgent(e) {
 
     console.log('dialing agent', currentAgentId, e.data.agentId);
-    
+
     let paths = ['conference', 'invite'];
     let params = {
       fromAgentId: currentAgentId,
@@ -385,7 +401,7 @@ $(function() {
     let paths = ['transfer'];
     let params = {
       fromAgentId: currentAgentId,
-      toAgentId: e.data.agentId,
+      toAgentId: sipMap[e.data.agentId] ? sipMap[e.data.agentId] : e.data.agentId,
     };
     let url = createUrl(baseUrl, paths, params);
     $.post(url);
@@ -438,21 +454,21 @@ $(function() {
     console.log('logging out');
     $.post(baseUrl + '/login/logout/', function(response) {
       console.log(response);
-      setPresenceOffline(currentAgentId);
+      setPresenceOffline();
       window.location.assign(baseUrl + '/login/');
     });
   }
 
-  function setPresenceOffline(currentAgentId) {
+  function setPresenceOffline() {
     agentPresencesRef.update({
-      [currentAgentId]: 'Offline',
+      [origAgentId]: 'Offline',
     });
   }
 
   function handleStatusSelectorChange(e) {
     let value = e.target.value;
     agentPresencesRef.update({
-      [currentAgentId]: value,
+      [origAgentId]: value,
     });
   }
 
@@ -573,7 +589,7 @@ $(function() {
     $dialInFlexParent = $('#dial-in-cnt .flex-parent');
 
     for (let agentId in presences) {
-      if (agentId != currentAgentId) {
+      if (agentId != origAgentId) {
         let $newTransferBtn = $('<div />').addClass('transfer-btn btn btn-lg btn-primary').data('agent-id', agentId);
         $transferFlexParent.append($newTransferBtn);
 
@@ -634,6 +650,15 @@ $(function() {
     }
   }
 
+  function handleSipMapChange(snapshot) {
+    console.log("in handleSipMapChange");
+
+    if (snapshot) {
+      sipMap = snapshot.val();
+    }
+
+  }
+
   function handleAgentStatusChange(snapshot) {
     console.log("in handleAgentStatusChange");
 
@@ -652,12 +677,12 @@ $(function() {
       }
       else if (myStatus.incomingCallName) {
         updateCallStatus("Incoming call: " + myStatus.incomingCallName + (myStatus.incomingCallNumber ? " " + myStatus.incomingCallNumber : ""));
-        $hangupCallButton.prop('disabled', false);
-        $answerCallButton.prop('disabled', false);
+        $hangupCallButton.prop('disabled', currentAgentId.startsWith('sip:'));
+        $answerCallButton.prop('disabled', currentAgentId.startsWith('sip:'));
       }
       else if (myStatus.outgoingCallName) {
         updateCallStatus("Outgoing call: " + myStatus.outgoingCallName + " " + myStatus.outgoingCallNumber);
-        $hangupCallButton.prop('disabled', false);
+        $hangupCallButton.prop('disabled', currentAgentId.startsWith('sip:'));
       }
 
       if (myStatus.currentParentSid) {
@@ -707,10 +732,13 @@ $(function() {
     }
     else {
       window.removeEventListener("beforeunload", preventUnload);
-      $outboundCnt.removeClass('hidden');
+      if (!currentAgentId.startsWith('sip:')) {
+        $outboundCnt.removeClass('hidden');
+      }
       $transferCnt.addClass('hidden');
       $dialInCnt.addClass('hidden');
       $startConferenceButton.addClass('hidden');
+      onHold = false;
       $holdButton.addClass('hidden');
       $offHoldButton.addClass('hidden');
       callEndedHandler();
@@ -720,6 +748,12 @@ $(function() {
   // function updateCallerId(snapshot) {
   //   callerIds = snapshot.val();
   // }
+
+  $window.on('click', function() {
+    console.log('origAgentId', origAgentId);
+    console.log('currentAgentId', currentAgentId);
+
+  })
 
 
 

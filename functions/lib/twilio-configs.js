@@ -11,6 +11,7 @@ var configs = {
   twilioAppSid: firebaseConfigs.twilio_app_sid2,
   emailSender: firebaseConfigs.email_sender,
   emailSenderPw: firebaseConfigs.email_sender_pw,
+  sipDomain: firebaseConfigs.sip_domain2,
 };
 
 module.exports = configs;

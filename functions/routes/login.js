@@ -4,6 +4,8 @@ var express = require('express');
 var router = express.Router();
 const { admin } = require('../lib/admin');
 const { authenticateBeforeLogin } = require('../lib/authenticate');
+var url = require('url');
+
 
 
 var getRedirectUrl = function(req) {
@@ -21,7 +23,11 @@ router.get('/', authenticateBeforeLogin, function(req, res) {
 });
 
 router.post('/logout', function(req, res) {
+  console.log('in logout');
+
   let redirectUrl = getRedirectUrl(req);
+  console.log(redirectUrl);
+
 
   res.clearCookie('session');
   res.redirect(redirectUrl);

@@ -4,6 +4,8 @@ var { admin } = require('./admin');
 var agentStatusesRef = admin.database().ref().child('agentStatuses');
 var agentsRef = admin.database().ref().child('agents');
 var agentPresencesRef = admin.database().ref().child('agentPresences');
+var sipMapRef = admin.database().ref().child('sipMap');
+
 
 
 
@@ -111,7 +113,7 @@ var updateAgentConference = function(agentId, conferenceName) {
 }
 
 var updateIncomingCallerId = function(agentId, name, number) {
-  console.log('in update caller id');
+  console.log('in update incoming caller id');
 
   let agentStatusRef = agentStatusesRef.child(agentId);
   // return agentStatusRef.once('value')
@@ -126,7 +128,7 @@ var updateIncomingCallerId = function(agentId, name, number) {
 }
 
 var updateOutgoingCallerId = function(agentId, name, number) {
-  console.log('in update caller id');
+  console.log('in update outgoing caller id');
 
   let agentStatusRef = agentStatusesRef.child(agentId);
   // return agentStatusRef.once('value')
@@ -161,6 +163,22 @@ var findConferenceStatusFromGroup = function(agentIds, parentSid) {
         }
       }
       return false;
+    });
+}
+
+var checkForSip = function(agentId) {
+  console.log('in check for sip');
+  console.log(agentId);
+  return sipMapRef.once('value')
+    .then((snapshot) => {
+      let doc = snapshot.val();
+      console.log('doc: ', doc);
+      for (let agent in doc) {
+        if (agent == agentId) {
+          return doc[agent];
+        }
+      }
+      return agentId;
     });
 }
 
@@ -255,3 +273,4 @@ module.exports.updateAgentConference = updateAgentConference;
 module.exports.findConferenceStatusFromGroup = findConferenceStatusFromGroup;
 module.exports.updateIncomingCallerId = updateIncomingCallerId;
 module.exports.updateOutgoingCallerId = updateOutgoingCallerId;
+module.exports.checkForSip = checkForSip;

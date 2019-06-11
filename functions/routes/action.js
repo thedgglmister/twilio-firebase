@@ -105,16 +105,26 @@ router.post('/hunt', function(req, res) {
     }
     else {
       let nextGroup = agentIdGroups[agentIdGroupIndex + 1]
+      let isSipGroup = nextGroup[0].startsWith('sip:');
       //modelUpdater.updateAgentStatus(nextGroup, parentSid, false)
         //.then(function() {
           let actionUrl = huntActionUrl(req, name, number);
-          let transferTwiml = twimlGenerator.transferTwiml({
+          let options = {
             agentIds: nextGroup,
             timeout: 10,
             action: actionUrl,
             name: name,
             number: number,
-          });
+          };
+
+          let transferTwiml
+          if (isSipGroup) {
+            transferTwiml = twimlGenerator.sipTransferTwiml(options);
+          }
+          else {
+            transferTwiml = twimlGenerator.transferTwiml(options);
+          }
+          
           res.type('text/xml');
           res.send(transferTwiml);
         // });
@@ -324,7 +334,14 @@ router.post('/invite/statusCallback', function(req, res) {
   }
 });
 
-
+// router.post('/sipTransfer/statusCallback', function(req, res) {
+//   console.log('in sipTransfer statusCallback');
+//   console.log('call to: ', req.body.To);
+//   console.log('call status: ', req.body.CallStatus);
+//
+//   console.log(req.body);
+//
+// });
 
 router.post('/transfer/statusCallback', function(req, res) {
   console.log('in transfer statusCallback');
@@ -334,7 +351,11 @@ router.post('/transfer/statusCallback', function(req, res) {
   //console.log(req.body);
 
   let callStatus = req.body.CallStatus;
-  let callTo = req.body.To.substring(req.body.To.indexOf(':') + 1);
+  let callTo = req.body.To.substring(0, req.body.To.indexOf('@') >= 0 ? req.body.To.indexOf('@') : req.body.To.length);
+  if (!req.body.To.startsWith('sip:')) {
+    callTo =  req.body.To.substring(req.body.To.indexOf(':') + 1);
+  }
+
   let parentSid = req.body.ParentCallSid;
   let childSid = req.body.CallSid;
   let name = req.query.name;

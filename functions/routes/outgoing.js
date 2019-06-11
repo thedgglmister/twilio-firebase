@@ -30,6 +30,10 @@ router.post('/', function(req, res) {
 
   var toNumber = req.body.toNumber;
   var fromAgentId = req.body.fromAgentId;
+  if (req.body.Caller.startsWith('sip:')) {
+    toNumber = req.body.Called.substring(req.body.Called.indexOf(':') + 1, req.body.Called.indexOf('@'));
+    fromAgentId = req.body.Caller.substring(0, req.body.Caller.indexOf('@'));;
+  }
   let actionUrl = outgoingActionUrl(req, fromAgentId);
   res.type('text/xml');
 

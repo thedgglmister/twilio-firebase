@@ -71,13 +71,20 @@ router.post('/callback', function(req, res) {
 
 
   let actionUrl = transferActionUrl(req);
-  let transferTwiml = twimlGenerator.transferTwiml({
+  let options = {
     agentIds: [toAgentId],
     timeout: 10,
     action: actionUrl,
     name: name,
     number: number,
-  });
+  };
+  let transferTwiml
+  if (toAgentId.startsWith('sip:')) {
+    transferTwiml = twimlGenerator.sipTransferTwiml(options);
+  }
+  else {
+    transferTwiml = twimlGenerator.transferTwiml(options);
+  }
 
   res.type('text/xml');
   res.send(transferTwiml);

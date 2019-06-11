@@ -16,6 +16,8 @@ const loginRouter = require('./routes/login');
 const holdRouter = require('./routes/hold');
 //const acceptRouter = require('./routes/accept');
 const { authenticate } = require('./lib/authenticate');
+var modelUpdater = require('./lib/model');
+
 
 
 const app = express();
@@ -32,7 +34,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // routes
 app.get('/', authenticate, function (req, res) {
   console.log('in app.get(/)');
-  res.render('index', {currentAgentId: req.agentId});
+  modelUpdater.checkForSip(req.agentId)
+    .then((agentId) => {
+      res.render('index', {
+        currentAgentId: agentId,
+        origAgentId: req.agentId,
+      });
+    })
+    .catch((error) => {
+      console.log(error);
+      res.sendStatus(500);
+    });
+  //res.render('index', {currentAgentId: req.agentId});
 });
 
 app.use('/conference', conferenceRouter);

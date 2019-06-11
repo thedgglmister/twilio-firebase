@@ -43,6 +43,26 @@ var transferTwiml = function(options) {
   return voiceResponse.toString();
 };
 
+
+var sipTransferTwiml = function(options) {
+  console.log('in sip transfer twiml');
+  console.log(options.agentIds);
+  var voiceResponse = new VoiceResponse();
+  var dial = voiceResponse.dial({
+    action: options.action,
+    timeout: options.timeout,
+  });
+  for (let agentId of options.agentIds) {
+    dial.sip({
+      statusCallbackEvent:"ringing answered completed",
+      statusCallback: encodeURI('https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/transfer/statusCallback?name=' + options.name + '&number=' + options.number),
+      statusCallbackMethod:"POST",
+    }, `${agentId}@${configs.sipDomain}`);
+  }
+
+  return voiceResponse.toString();
+};
+
 var dialNumberTwiml = function(options){
   console.log('in dial number twiml');
   var voiceResponse = new VoiceResponse();
@@ -99,6 +119,8 @@ var enqueueTwiml = function(options){
 
 module.exports.conferenceTwiml = conferenceTwiml;
 module.exports.transferTwiml = transferTwiml;
+module.exports.sipTransferTwiml = sipTransferTwiml;
+
 module.exports.recordTwiml = recordTwiml;
 module.exports.hangupTwiml = hangupTwiml;
 //module.exports.leaveTwiml = leaveTwiml;
