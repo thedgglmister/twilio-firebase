@@ -97,7 +97,9 @@ router.post('/hunt', function(req, res) {
 
   if (dialCallStatus == 'no-answer' || dialCallStatus == 'busy') {
     if (agentIdGroupIndex == agentIdGroups.length - 1) {
-      let recipientAgentId = 'biremonger'; //////////////////////////////////////////////handle
+
+      let recipientAgentId = 'biremonger'; //WHO SHOULD GET THE EMAIL IF NO ONE ANSWERS INITIALLY?
+
       let callbackUrl = transcribeCallbackUrl(req, recipientAgentId);
       let recordTwiml = twimlGenerator.recordTwiml(callbackUrl);
       res.type('text/xml');
@@ -124,7 +126,7 @@ router.post('/hunt', function(req, res) {
           else {
             transferTwiml = twimlGenerator.transferTwiml(options);
           }
-          
+
           res.type('text/xml');
           res.send(transferTwiml);
         // });
@@ -158,18 +160,20 @@ router.post('/hunt', function(req, res) {
 router.post('/transfer', function(req, res) {
   console.log('in transfer action');
   console.log('agentId: ', req.query.agentId);
+  console.log('origAgentId: ', req.query.origAgentId);
   console.log('parentSid: ', req.body.CallSid);
   console.log('dialCallStatus: ', req.body.DialCallStatus);
 
   var agentId = req.query.agentId;
+  var origAgentId = req.query.origAgentId;
   var parentSid = req.body.CallSid;
   var dialCallStatus = req.body.DialCallStatus
 
   if (dialCallStatus == 'no-answer' || dialCallStatus == 'busy') {
-    let recipientAgentId = agentId;
+    let recipientAgentId = origAgentId;
     let callbackUrl = transcribeCallbackUrl(req, recipientAgentId);
     let recordTwiml = twimlGenerator.recordTwiml(callbackUrl);
-
+    res.type('text/xml');
     res.send(recordTwiml);
   }
   else {
@@ -286,8 +290,18 @@ router.post('/invite/statusCallback', function(req, res) {
   console.log(req.body);
 
   let callStatus = req.body.CallStatus;
-  let inviterAgentId = req.body.Caller.substring(req.body.Caller.indexOf(':') + 1);
-  let inviteeAgentId = req.body.Called.substring(req.body.Called.indexOf(':') + 1);
+  let inviterAgentId = req.body.Caller.substring(0, req.body.Caller.indexOf('@') >= 0 ? req.body.Caller.indexOf('@') : req.body.Caller.length);
+  let inviteeAgentId = req.body.Called.substring(0, req.body.Called.indexOf('@') >= 0 ? req.body.Called.indexOf('@') : req.body.Called.length);
+  if (!req.body.Caller.startsWith('sip:')) {
+    inviterAgentId = req.body.Caller.substring(req.body.Caller.indexOf(':') + 1);
+  }
+  if (!req.body.Called.startsWith('sip:')) {
+    inviteeAgentId = req.body.Called.substring(req.body.Called.indexOf(':') + 1);
+  }
+
+
+
+
   let conferenceName = req.query.conferenceName;
 
 
@@ -303,7 +317,7 @@ router.post('/invite/statusCallback', function(req, res) {
       });
   }
   else if (callStatus == 'ringing') {
-    modelUpdater.updateIncomingCallerId(inviteeAgentId, inviterAgentId, null)
+    modelUpdater.updateIncomingCallerId(inviteeAgentId, inviterAgentId, null, null)
       .then(() => {
         res.sendStatus(200);
       })
@@ -313,7 +327,7 @@ router.post('/invite/statusCallback', function(req, res) {
       });
   }
   else if (callStatus == 'no-answer') {
-    modelUpdater.updateIncomingCallerId(inviteeAgentId, null, null)
+    modelUpdater.updateIncomingCallerId(inviteeAgentId, null, null, null)
       .then(() => {
         res.sendStatus(200);
       })
@@ -353,7 +367,7 @@ router.post('/transfer/statusCallback', function(req, res) {
   let callStatus = req.body.CallStatus;
   let callTo = req.body.To.substring(0, req.body.To.indexOf('@') >= 0 ? req.body.To.indexOf('@') : req.body.To.length);
   if (!req.body.To.startsWith('sip:')) {
-    callTo =  req.body.To.substring(req.body.To.indexOf(':') + 1);
+    callTo = req.body.To.substring(req.body.To.indexOf(':') + 1);
   }
 
   let parentSid = req.body.ParentCallSid;
@@ -373,7 +387,7 @@ router.post('/transfer/statusCallback', function(req, res) {
       });
   }
   else if (callStatus == 'ringing') {
-    modelUpdater.updateIncomingCallerId(callTo, name, number)
+    modelUpdater.updateIncomingCallerId(callTo, name, number, parentSid)
       .then(() => {
         res.sendStatus(200);
       })
@@ -383,7 +397,7 @@ router.post('/transfer/statusCallback', function(req, res) {
       });
   }
   else if (callStatus == 'no-answer') {
-    modelUpdater.updateIncomingCallerId(callTo, null, null)
+    modelUpdater.updateIncomingCallerId(callTo, null, null, null)
       .then(() => {
         res.sendStatus(200);
       })

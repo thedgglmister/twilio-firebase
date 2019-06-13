@@ -28,7 +28,7 @@ var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken
 //     });
 // };
 
-var inviteParticipant = function(fromAgentId, toAgentId, conferenceName) {
+var inviteParticipant = function(fromAgentId, toAgentId, conferenceName, origFromAgentId) {
   console.log('in invite participant');
   //console.log(client.conferences(conferenceName));
   console.log(53);
@@ -43,10 +43,13 @@ var inviteParticipant = function(fromAgentId, toAgentId, conferenceName) {
       if (conferences.length > 0) {
         let conferenceSid = conferences[0].sid;
         console.log(57);
+        console.log(fromAgentId.startsWith('sip:') ? `${fromAgentId}@${configs.sipDomain}` : `client:${fromAgentId}`);
+        console.log(toAgentId.startsWith('sip:') ? `${toAgentId}@${configs.sipDomain}` : `client:${toAgentId}`);
+
 
         return client.conferences(conferenceSid).participants.create({
-          from: `client:${fromAgentId}`,
-          to: `client:${toAgentId}`,
+          from: `client:${origFromAgentId}`,
+          to: toAgentId.startsWith('sip:') ? `${toAgentId}@${configs.sipDomain}` : `client:${toAgentId}`,
           statusCallbackEvent: ['ringing', 'answered', 'completed'],
           statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/statusCallback?conferenceName=${conferenceName}`,
           statusCallbackMethod:"POST",
@@ -62,14 +65,14 @@ var inviteParticipant = function(fromAgentId, toAgentId, conferenceName) {
   console.log(58);
 
 
-  return client.conferences(conferenceName).participants.create({
-    from: `client:${fromAgentId}`,
-    to: `client:${toAgentId}`,
-    statusCallbackEvent: ['ringing', 'answered', 'completed'],
-    statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/statusCallback?conferenceSid=${conferenceSid}`,
-    statusCallbackMethod:"POST",
-    earlyMedia: false,
-  });
+  // return client.conferences(conferenceName).participants.create({
+  //   from: `client:${fromAgentId}`,
+  //   to: `client:${toAgentId}`,
+  //   statusCallbackEvent: ['ringing', 'answered', 'completed'],
+  //   statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/statusCallback?conferenceSid=${conferenceSid}`,
+  //   statusCallbackMethod:"POST",
+  //   earlyMedia: false,
+  // });
 }
 
 var updateCall = function(callSid, callbackUrl) {

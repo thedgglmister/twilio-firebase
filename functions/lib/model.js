@@ -24,6 +24,7 @@ var updateCurrentCallSids = function(agentId, parentSid, childSid, name, number,
             updates.currentCallName = name;
             updates.currentCallNumber = number;
             updates.callDirection = callDirection;
+            updates.incomingCallSid = null;
             updates.incomingCallName = null;
             updates.incomingCallNumber = null;
             updates.outgoingCallName = null;
@@ -96,6 +97,7 @@ var updateAgentConference = function(agentId, conferenceName) {
               currentCallName: null,
               currentCallNumber: null,
               callDirection: null,
+              incomingCallSid: null,
               incomingCallName: null,
               incomingCallNumber: null,
             };
@@ -112,7 +114,7 @@ var updateAgentConference = function(agentId, conferenceName) {
           // });
 }
 
-var updateIncomingCallerId = function(agentId, name, number) {
+var updateIncomingCallerId = function(agentId, name, number, callSid) {
   console.log('in update incoming caller id');
 
   let agentStatusRef = agentStatusesRef.child(agentId);
@@ -122,6 +124,7 @@ var updateIncomingCallerId = function(agentId, name, number) {
             let updates = {
               incomingCallName: name,
               incomingCallNumber: number,
+              incomingCallSid: callSid,
             };
             return agentStatusRef.update(updates)
 

@@ -48,6 +48,7 @@ $(function() {
   var $statusSelector = $("#status-selector");
   var $ringtoneSelector = $("#ringtone-selector");
   var $speakerSelector = $("#speaker-selector");
+  var $speakerSelectorCntr = $("#speaker-selector-cntr");
   var $window = $(window);
   var sipMap = {};
 
@@ -251,8 +252,7 @@ $(function() {
         $answerCallButton.prop('disabled', true);
         $hangupCallButton.prop('disabled', true);
         $outboundCnt.addClass('hidden');
-        $ringtoneSelector.addClass('hidden');
-        $speakerSelector.addClass('hidden');
+        $speakerSelectorCntr.addClass('hidden');
       }
     }
 
@@ -390,7 +390,8 @@ $(function() {
     let paths = ['conference', 'invite'];
     let params = {
       fromAgentId: currentAgentId,
-      toAgentId: e.data.agentId,
+      origFromAgentId: origAgentId,
+      toAgentId: sipMap[e.data.agentId] ? sipMap[e.data.agentId] : e.data.agentId,
     };
     let url = createUrl(baseUrl, paths, params);
     $.post(url);
@@ -402,6 +403,7 @@ $(function() {
     let params = {
       fromAgentId: currentAgentId,
       toAgentId: sipMap[e.data.agentId] ? sipMap[e.data.agentId] : e.data.agentId,
+      origToAgentId: e.data.agentId,
     };
     let url = createUrl(baseUrl, paths, params);
     $.post(url);
@@ -432,6 +434,7 @@ $(function() {
     let paths = ['hold', 'unhold'];
     let params = {
       agentId: currentAgentId,
+      origAgentId: origAgentId,
     }
     let url = createUrl(baseUrl, paths, params);
     $.post(url, function() {
@@ -685,9 +688,12 @@ $(function() {
         $hangupCallButton.prop('disabled', currentAgentId.startsWith('sip:'));
       }
 
-      if (myStatus.currentParentSid) {
+      if (myStatus.currentParentSid || myStatus.holdSid) {
         $transferCnt.removeClass('hidden');
         $answerCallButton.prop('disabled', true);
+      }
+      else if (myStatus.incomingCallSid) {
+        $transferCnt.removeClass('hidden');
       }
       else  {
         $transferCnt.addClass('hidden');

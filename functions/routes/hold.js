@@ -45,6 +45,7 @@ var transferCallbackUrl = function(req, name, number) {
     pathname: pathname,
     query: {
       toAgentId: req.query.agentId,
+      origToAgentId: req.query.origAgentId,
       name: name,
       number: number,
     },
@@ -56,6 +57,7 @@ var transferCallbackUrl = function(req, name, number) {
 router.post('/', function(req, res) {
   console.log('moving to hold');
   console.log('agentId: ', req.query.agentId);
+  console.log('origAgentId: ', req.query.origAgentId);
 
   var agentId = req.query.agentId;
 

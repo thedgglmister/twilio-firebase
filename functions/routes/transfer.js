@@ -16,6 +16,7 @@ var transferCallbackUrl = function(req, name, number) {
     pathname: pathname,
     query: {
       toAgentId: req.query.toAgentId,
+      origToAgentId: req.query.origToAgentId,
       name: name,
       number: number,
     },
@@ -30,6 +31,7 @@ var transferActionUrl = function(req) {
     pathname: pathname,
     query: {
       agentId: req.query.toAgentId,
+      origAgentId: req.query.origToAgentId,
     },
   });
 };
@@ -39,14 +41,36 @@ router.post('/', function(req, res) {
   console.log('in transfer');
   console.log('fromAgent: ', req.query.fromAgentId);
   console.log('toAgent: ', req.query.toAgentId);
+  console.log('origToAgent: ', req.query.origToAgentId);
+
 
   let fromAgentId = req.query.fromAgentId;
 
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
-      let callSid = doc.currentParentSid ? doc.currentParentSid : doc.holdSid;
-      let name = doc.currentCallName ? doc.currentCallName : doc.holdName;
-      let number = doc.currentCallNumber ? doc.currentCallNumber : doc.holdNumber;
+
+      let callSid;
+      let name;
+      let number;
+
+      if (doc.currentParentSid) {
+        callSid = doc.currentParentSid;
+        name = doc.currentCallName;
+        number =  doc.currentCallNumber;
+      }
+      else if (doc.incomingCallSid) {
+        callSid = doc.incomingCallSid;
+        name = doc.incomingCallName;
+        number =  doc.incomingCallNumber;
+      }
+      else if (doc.holdSid) {
+        callSid = doc.holdSid;
+        name = doc.holdName;
+        number =  doc.holdNumber;
+      }
+      else {
+        res.sendStatus(200);
+      }
 
       var callbackUrl = transferCallbackUrl(req, name, number);
       twilioCaller.updateCall(callSid, callbackUrl)

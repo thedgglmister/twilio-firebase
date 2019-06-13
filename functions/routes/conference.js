@@ -145,10 +145,12 @@ router.post('/', function(req, res) {
 router.post('/invite', function(req, res) {
   console.log('in conference invite');
   console.log('fromAgentId: ', req.query.fromAgentId);
+  console.log('origFromAgentId: ', req.query.origFromAgentId);
   console.log('toAgentId: ', req.query.toAgentId);
 
   var toAgentId = req.query.toAgentId;
   var fromAgentId = req.query.fromAgentId;
+  var origFromAgentId = req.query.origFromAgentId;
 
   modelUpdater.findAgentStatus(fromAgentId)
     .then(function(doc) {
@@ -164,7 +166,7 @@ router.post('/invite', function(req, res) {
       //   .then(function() {
       //     res.sendStatus(200);
       //   });
-      twilioCaller.inviteParticipant(fromAgentId, toAgentId, conferenceName)
+      twilioCaller.inviteParticipant(fromAgentId, toAgentId, conferenceName, origFromAgentId)
         .then(function() {
           console.log(777);
           res.sendStatus(200);
