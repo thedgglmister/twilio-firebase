@@ -34,11 +34,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 // routes
 app.get('/', authenticate, function (req, res) {
   console.log('in app.get(/)');
+
+  let debug = req.query.debug == '1';
   modelUpdater.checkForSip(req.agentId)
     .then((agentId) => {
       res.render('index', {
         currentAgentId: agentId,
         origAgentId: req.agentId,
+        debug: debug,
       });
     })
     .catch((error) => {

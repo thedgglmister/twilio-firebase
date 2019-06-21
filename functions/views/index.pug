@@ -16,6 +16,8 @@ block head
   script.
     var currentAgentId = !{JSON.stringify(currentAgentId)};
     var origAgentId = !{JSON.stringify(origAgentId)};
+    var debug = !{JSON.stringify(debug)};
+
 
     console.log(998899899);
     console.log(currentAgentId);
@@ -44,7 +46,7 @@ block content
                   Unavailable
 
 
-          div.row#connect-agent-row
+          div.row.hidden#connect-agent-row
             div.col-md-6.text-center
               button#connect-agent1-button.btn.btn-lg.btn-primary.
                 * Connect as mkaufman
@@ -78,6 +80,10 @@ block content
             div.col-md-12.text-center#outbound-cnt
               input(id='dial-input', placeholder='(888) 888-8888').margin-horizontal.outbound-input
               button#call-button.btn.margin-horizontal.btn-lg.btn-info.
+                Call
+            div.col-md-12.hidden.text-center#outbound-conf-call-cnt
+              input(id='conf-call-dial-input', placeholder='(888) 888-8888').margin-horizontal.outbound-input
+              button#conf-call-button.btn.margin-horizontal.btn-lg.btn-info.
                 Call
 
           div.row.hidden#dial-in-cnt

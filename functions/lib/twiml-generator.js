@@ -23,6 +23,25 @@ var conferenceTwiml = function(options) {
   return voiceResponse.toString();
 };
 
+
+
+var numberConferenceTwiml = function(options) {
+  var voiceResponse = new VoiceResponse();
+
+
+  voiceResponse.dial().conference({
+      startConferenceOnEnter: options.startConferenceOnEnter,
+      endConferenceOnExit: options.endConferenceOnExit,
+      waitUrl: options.waitUrl,
+      // statusCallbackEvent:"start end join leave",
+      // statusCallback: 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/conference/statusCallback',
+      // statusCallbackMethod:"POST",
+      timeout: 15,
+    }, options.conferenceName);
+
+  return voiceResponse.toString();
+};
+
 var transferTwiml = function(options) {
   console.log('in transfer twiml');
   console.log(options.agentIds);
@@ -90,8 +109,11 @@ var recordTwiml = function(callbackUrl) {
 };
 
 var hangupTwiml = function(){
+  console.log('in hangup twiml');
   var voiceResponse = new VoiceResponse();
   voiceResponse.hangup();
+
+  console.log(voiceResponse);
 
   return voiceResponse.toString();
 };
@@ -118,6 +140,8 @@ var enqueueTwiml = function(options){
 // };
 
 module.exports.conferenceTwiml = conferenceTwiml;
+module.exports.numberConferenceTwiml = numberConferenceTwiml;
+
 module.exports.transferTwiml = transferTwiml;
 module.exports.sipTransferTwiml = sipTransferTwiml;
 

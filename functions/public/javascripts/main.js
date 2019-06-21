@@ -40,8 +40,14 @@ $(function() {
   var $holdButton = $("#hold-button");
   var $offHoldButton = $("#off-hold-button");
   var $callButton = $("#call-button");
+  var $confCallButton = $("#conf-call-button");
+
   var $outboundCnt = $("#outbound-cnt");
+  var $outboundConfCallCnt = $("#outbound-conf-call-cnt");
+
   var $dialInput = $("#dial-input");
+  var $confCallDialInput = $("#conf-call-dial-input");
+
   var $logoutButton = $("#logout-btn");
   var $transferCnt = $('#transfer-cnt');
   var $dialInCnt = $('#dial-in-cnt');
@@ -71,9 +77,12 @@ $(function() {
   //let callerIdRef = firebase.database().ref('callerId');
 
 
-  ///REAL need to uncomment out
-    //fetchToken(origAgentId);
-  ////
+  if (!debug) {
+    fetchToken(origAgentId);
+  }
+  else {
+    $('#connect-agent-row').removeClass('hidden');
+  }
 
   $connectAgent1Button.on('click', { agentId: agentIds.agent1 }, agentClickHandler);
   $connectAgent2Button.on('click', { agentId: agentIds.agent2 }, agentClickHandler);
@@ -85,6 +94,8 @@ $(function() {
   $hangupCallButton.on('click', handleHangupCallButtonClick);
   $answerCallButton.on('click', handleAnswerCallButtonClick);
   $callButton.on('click', call);
+  $confCallButton.on('click', dialIntoConference);
+
   $logoutButton.on('click', logout);
   $window.on('keydown', sendDigits);
   $window.on('beforeunload', setPresenceOffline);
@@ -387,7 +398,7 @@ $(function() {
 
     console.log('dialing agent', currentAgentId, e.data.agentId);
 
-    let paths = ['conference', 'invite'];
+    let paths = ['conference', 'invite', 'agent'];
     let params = {
       fromAgentId: currentAgentId,
       origFromAgentId: origAgentId,
@@ -637,6 +648,28 @@ $(function() {
     //$hangupCallButton.prop('disabled', false);
   }
 
+  function dialIntoConference() {
+    var rawToNumber = $confCallDialInput.val();
+    var toNumber = '';
+    for (var i = 0; i < rawToNumber.length; i++) {
+      var char = rawToNumber[i];
+      if (!isNaN(parseInt(char))) {
+        toNumber += char;
+      }
+    }
+
+    console.log('dialing into conference number', toNumber);
+
+
+    let paths = ['conference', 'invite', 'number'];
+    let params = {
+      fromAgentId: currentAgentId,
+      toNumber: toNumber,
+    };
+    let url = createUrl(baseUrl, paths, params);
+    $.post(url);
+  }
+
   function initPresences(snapshot) {
     let presences = snapshot.val();
     if (presences) {
@@ -729,11 +762,13 @@ $(function() {
 
       if (myStatus.conferenceName) {
         $dialInCnt.removeClass('hidden');
+        $outboundConfCallCnt.removeClass('hidden');
         updateCallStatus("In conference");
         $answerCallButton.prop('disabled', true);
       }
       else  {
         $dialInCnt.addClass('hidden');
+        $outboundConfCallCnt.addClass('hidden');
       }
     }
     else {
@@ -743,6 +778,7 @@ $(function() {
       }
       $transferCnt.addClass('hidden');
       $dialInCnt.addClass('hidden');
+      $outboundConfCallCnt.addClass('hidden');
       $startConferenceButton.addClass('hidden');
       onHold = false;
       $holdButton.addClass('hidden');

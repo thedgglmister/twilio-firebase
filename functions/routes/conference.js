@@ -22,7 +22,21 @@ var conferenceCallbackAgentUrl = function(req, conferenceName, agentId, includeA
     query: {
       conferenceName: conferenceName,
       agentId: agentId,
-      includeAction : includeAction ? '1' : '0',
+      includeAction: includeAction ? '1' : '0',
+    }
+  });
+};
+
+var conferenceCallbackNumberUrl = function(req, conferenceName, toNumber) {
+  let pathname = `/phone/conference/callback/number`;
+
+  return url.format({
+    protocol: 'https',
+    host: req.host,
+    pathname: pathname,
+    query: {
+      conferenceName: conferenceName,
+      toNumber: toNumber,
     }
   });
 };
@@ -55,6 +69,36 @@ router.post('/callback/agent', function(req, res) {
       res.sendStatus(500);
     })
 });
+
+
+
+router.post('/callback/number', function(req, res) {
+  console.log('in conference number callback');
+  console.log('conferenceName: ', req.query.conferenceName);
+
+  let toNumber = req.query.toNumber;
+  let conferenceName = req.query.conferenceName;
+
+  // modelUpdater.updateAgentConference(agentId, conferenceName)
+  //   .then(() => {
+      let numberConferenceTwiml = twimlGenerator.numberConferenceTwiml({
+        waitUrl: AGENT_WAIT_URL,
+        startConferenceOnEnter: true,
+        endConferenceOnExit: false,
+        conferenceName: conferenceName,
+        toNumber: toNumber,
+      });
+      res.type('text/xml');
+      res.send(conferenceTwiml);
+    // })
+    // .catch((e) => {
+    //   console.log(e);
+    //   res.sendStatus(500);
+    // })
+});
+
+
+
 
 // router.post('/callback', function(req, res) {
 //   console.log('in conference callback');
@@ -142,7 +186,10 @@ router.post('/', function(req, res) {
 });
 
 
-router.post('/invite', function(req, res) {
+
+
+
+router.post('/invite/agent', function(req, res) {
   console.log('in conference invite');
   console.log('fromAgentId: ', req.query.fromAgentId);
   console.log('origFromAgentId: ', req.query.origFromAgentId);
@@ -159,8 +206,8 @@ router.post('/invite', function(req, res) {
       console.log(conferenceName);
 
       // modelUpdater.updateConferenceName(toAgentId, conferenceName);
-      var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toAgentId, true);
-      console.log(666);
+      // var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toAgentId, true);
+      // console.log(666);
 
       // twilioCaller.call(fromAgentId, toAgentId, callbackUrl)
       //   .then(function() {
@@ -183,6 +230,59 @@ router.post('/invite', function(req, res) {
       res.sendStatus(500);
     })
 });
+
+
+
+
+
+
+
+router.post('/invite/number', function(req, res) {
+  console.log('in conference invite');
+  console.log('fromAgentId: ', req.query.fromAgentId);
+  console.log('origFromAgentId: ', req.query.origFromAgentId);
+  console.log('toNumber: ', req.query.toNumber);
+
+  var toNumber = req.query.toNumber;
+  var fromAgentId = req.query.fromAgentId;
+
+  modelUpdater.findAgentStatus(fromAgentId)
+    .then(function(doc) {
+      console.log(555);
+      let conferenceName = doc.conferenceName;
+      console.log(conferenceName);
+
+      //modelUpdater.updateConferenceName(toAgentId, conferenceName);
+      var callbackUrl = conferenceCallbackAgentUrl(req, conferenceName, toNumber, false);
+      console.log(666);
+
+      twilioCaller.call(toNumber, callbackUrl)
+        .then(function() {
+          res.sendStatus(200);
+        });
+      // twilioCaller.inviteNumberParticipant(fromAgentId, toNumber, conferenceName)
+      //   .then(function() {
+      //     console.log(777);
+      //     res.sendStatus(200);
+      //   })
+      //   .catch(function(e) {
+      //     console.log(999);
+      //     console.log(e);
+      //     res.sendStatus(500);
+      //   });
+    })
+    .catch((e) => {
+      console.log(888);
+      console.log(e);
+      res.sendStatus(500);
+    })
+});
+
+
+
+
+
+
 
 
 

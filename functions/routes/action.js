@@ -284,8 +284,8 @@ router.post('/enqueue', function(req, res) {
 
 
 
-router.post('/invite/statusCallback', function(req, res) {
-  console.log('in invite statusCallback');
+router.post('/invite/agent/statusCallback', function(req, res) {
+  console.log('in invite agent statusCallback');
 
   console.log(req.body);
 
@@ -419,6 +419,19 @@ router.post('/transfer/statusCallback', function(req, res) {
 });
 
 
+router.post('/invite/number/statusCallback', function(req, res) {
+  console.log('in invite number statusCallback');
+
+  console.log(req.body);
+
+  //let hangupTwiml = twimlGenerator.hangupTwiml();
+  //res.type('text/xml');
+  //res.send(hangupTwiml);
+  res.sendStatus(200);
+
+});
+
+
 
 router.post('/outgoing/statusCallback/:fromAgentId', function(req, res) {
   console.log("in outgoing statusCallback");
@@ -470,7 +483,7 @@ router.post('/conference/:agentId', function(req, res) {
   console.log('in conference action');
   console.log('agentId: ', req.params.agentId);
   // console.log('call status: ', req.body.CallStatus);
-  //console.log(req.body);
+  console.log(req.body);
 
   // let callStatus = req.body.CallStatus;
   let agentId = req.params.agentId;

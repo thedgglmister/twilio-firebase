@@ -4,16 +4,16 @@ var configs = require('./twilio-configs');
 var client = require('twilio')(configs.twilioAccountSid, configs.twilioAuthToken);
 
 
-// var call = function(fromAgentId, toAgentId, callbackUrl) {
-//   console.log('in twilio caller call()');
-//
-//   return client.calls
-//     .create({
-//       from: (`client:${fromAgentId}`),
-//       to: `client:${toAgentId}`,
-//       url: callbackUrl
-//     })
-// };
+var call = function(toNumber, callbackUrl) {
+  console.log('in twilio caller call()');
+
+  return client.calls
+    .create({
+      from: configs.twilioNumber,
+      to: toNumber,
+      url: callbackUrl
+    })
+};
 
 
 
@@ -51,7 +51,7 @@ var inviteParticipant = function(fromAgentId, toAgentId, conferenceName, origFro
           from: `client:${origFromAgentId}`,
           to: toAgentId.startsWith('sip:') ? `${toAgentId}@${configs.sipDomain}` : `client:${toAgentId}`,
           statusCallbackEvent: ['ringing', 'answered', 'completed'],
-          statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/statusCallback?conferenceName=${conferenceName}`,
+          statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/agent/statusCallback?conferenceName=${conferenceName}`,
           statusCallbackMethod:"POST",
           earlyMedia: false,
         });
@@ -75,6 +75,56 @@ var inviteParticipant = function(fromAgentId, toAgentId, conferenceName, origFro
   // });
 }
 
+
+var inviteNumberParticipant = function(fromAgentId, toNumber, conferenceName) {
+  console.log('in invite number participant');
+  //console.log(client.conferences(conferenceName));
+  console.log(53);
+  //console.log(client.conferences(conferenceName).participants);
+  console.log(54);
+  console.log(conferenceName);
+
+  return client.conferences.list({friendlyName: conferenceName, status: 'in-progress', limit: 1})
+    .then(function(conferences) {
+      console.log(55);
+      console.log(conferences);
+      if (conferences.length > 0) {
+        let conferenceSid = conferences[0].sid;
+        console.log(57);
+
+        return client.conferences(conferenceSid).participants.create({
+          from: configs.twilioNumber,
+          to: toNumber,
+          earlyMedia: false,
+          statusCallbackEvent: ['answered', 'completed'],
+          statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/number/statusCallback`,
+          statusCallbackMethod:"POST",
+        });
+      }
+    })
+    .catch(function(e) {
+      console.log(56);
+      console.log(e);
+    });
+
+  console.log(58);
+
+
+  // return client.conferences(conferenceName).participants.create({
+  //   from: `client:${fromAgentId}`,
+  //   to: `client:${toAgentId}`,
+  //   statusCallbackEvent: ['ringing', 'answered', 'completed'],
+  //   statusCallback: `https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/action/invite/statusCallback?conferenceSid=${conferenceSid}`,
+  //   statusCallbackMethod:"POST",
+  //   earlyMedia: false,
+  // });
+}
+
+
+
+
+
+
 var updateCall = function(callSid, callbackUrl) {
   console.log('in update call');
   console.log(callbackUrl);
@@ -97,8 +147,9 @@ var lookupCall = function(number) {
     });
 };
 
-// module.exports.call = call;
+module.exports.call = call;
 // module.exports.callNumber = callNumber;
 module.exports.updateCall = updateCall;
 module.exports.lookupCall = lookupCall;
 module.exports.inviteParticipant = inviteParticipant;
+module.exports.inviteNumberParticipant = inviteNumberParticipant;
