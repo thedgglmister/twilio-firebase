@@ -4,6 +4,7 @@ const { admin } = require('./admin');
 
 
 
+
 var authenticate = function(req, res, next) {
   const sessionCookie = req.cookies.session || '';
   console.log('AUTHENTICATING');

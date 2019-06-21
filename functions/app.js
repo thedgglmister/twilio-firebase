@@ -17,6 +17,8 @@ const holdRouter = require('./routes/hold');
 //const acceptRouter = require('./routes/accept');
 const { authenticate } = require('./lib/authenticate');
 var modelUpdater = require('./lib/model');
+var configs = require('./lib/twilio-configs');
+
 
 
 
@@ -41,6 +43,7 @@ app.get('/', authenticate, function (req, res) {
       res.render('index', {
         currentAgentId: agentId,
         origAgentId: req.agentId,
+        apiKey: configs.apiKey,
         debug: debug,
       });
     })

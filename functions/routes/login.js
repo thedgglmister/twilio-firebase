@@ -5,6 +5,8 @@ var router = express.Router();
 const { admin } = require('../lib/admin');
 const { authenticateBeforeLogin } = require('../lib/authenticate');
 var url = require('url');
+var configs = require('../lib/twilio-configs');
+
 
 
 
@@ -19,7 +21,9 @@ var getRedirectUrl = function(req) {
 
 router.get('/', authenticateBeforeLogin, function(req, res) {
   console.log('in login');
-  res.render('client-login');
+  res.render('client-login', {
+    apiKey: configs.apiKey,
+  });
 });
 
 router.post('/logout', function(req, res) {

@@ -6,6 +6,8 @@ block head
   meta(name='viewport' content='width=device-width, initial-scale=1.0')
   link(rel='stylesheet' href='/phone/stylesheets/login.css')
   script(src='//code.jquery.com/jquery-2.1.4.min.js')
+  script.
+    var apiKey = !{JSON.stringify(apiKey)};
   script(src='https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone/javascripts/client-login.js')
   script(src='https://www.gstatic.com/firebasejs/5.5.8/firebase.js')
 

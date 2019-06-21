@@ -2,7 +2,7 @@ $(function() {
 
   var baseUrl = 'https://us-central1-tel-mkpartners-com.cloudfunctions.net/phone';
   var config = {
-    apiKey: "AIzaSyBP8rrmwcLUs6uwauyY-RibJH54RPgwm2g",
+    apiKey: apiKey,
     authDomain: "tel-mkpartners-com.firebaseapp.com",
     databaseURL: "https://tel-mkpartners-com.firebaseio.com",
     projectId: "tel-mkpartners-com",

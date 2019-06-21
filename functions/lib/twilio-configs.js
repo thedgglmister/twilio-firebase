@@ -12,6 +12,7 @@ var configs = {
   emailSender: firebaseConfigs.email_sender,
   emailSenderPw: firebaseConfigs.email_sender_pw,
   sipDomain: firebaseConfigs.sip_domain2,
+  apiKey: firebaseConfigs.api_key,
 };
 
 module.exports = configs;

@@ -1,10 +1,12 @@
 'use strict';
 
-console.log(123);
+
 const admin = require('firebase-admin');
-console.log(124);
+var configs = require('./twilio-configs');
+
+
 const config = {
-  apiKey: "AIzaSyBP8rrmwcLUs6uwauyY-RibJH54RPgwm2g",
+  apiKey: configs.apiKey,
   authDomain: "tel-mkpartners-com.firebaseapp.com",
   databaseURL: "https://tel-mkpartners-com.firebaseio.com",
   projectId: "tel-mkpartners-com",

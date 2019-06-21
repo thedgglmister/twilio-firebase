@@ -62,7 +62,7 @@ $(function() {
 
   // Initialize Firebase
   var config = {
-    apiKey: "AIzaSyBP8rrmwcLUs6uwauyY-RibJH54RPgwm2g",
+    apiKey: apiKey,
     authDomain: "tel-mkpartners-com.firebaseapp.com",
     databaseURL: "https://tel-mkpartners-com.firebaseio.com",
     projectId: "tel-mkpartners-com",
